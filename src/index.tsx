@@ -2,6 +2,7 @@ import React from 'react'
 import { type FC, useEffect, useRef } from 'react'
 import Highcharts from 'highcharts'
 import HighchartsMore from 'highcharts/highcharts-more'
+HighchartsMore(Highcharts) // Initialize highcharts-more module for bubble charts
 
 import { Retool } from '@tryretool/custom-component-support'
 
@@ -78,6 +79,163 @@ export const PieChart: FC = () => {
       Highcharts.chart(chartContainerRef.current, options)
     };
   }, [labels, values, colors, title, subtitle]);
+
+  return <div ref={chartContainerRef} />
+}
+
+
+export const BubbleChart: FC = () => {
+  const chartContainerRef = useRef<HTMLDivElement>(null)
+  
+  const [xValues, setXValues] = Retool.useStateArray({
+    name: 'xValues'
+  })
+
+  const [xLabel, setXLabel] = Retool.useStateString({
+    name: 'xLabel'
+  })
+
+  const [yValues, setYValues] = Retool.useStateArray({
+    name: 'yValues'
+  })
+
+  const [yLabel, setYLabel] = Retool.useStateString({
+    name: 'yLabel'
+  })
+
+  const [zValues, setZValues] = Retool.useStateArray({
+    name: 'zValues'  // For bubble sizes
+  })
+  
+  const [zLabel, setZLabel] = Retool.useStateString({
+    name: 'zLabel'
+  })
+
+  const [labels, setLabels] = Retool.useStateArray({
+    name: 'labels'
+  })
+
+  const [colors, setColors] = Retool.useStateArray({
+    name: 'colors'
+  })
+
+  const [title, setTitle] = Retool.useStateString({
+    name: 'title'
+  })
+
+  const [subtitle, setSubtitle] = Retool.useStateString({
+    name: 'subtitle'
+  })
+
+  const [width, setWidth] = Retool.useStateNumber({
+    name: 'width'
+  })
+
+  const [height, setHeight] = Retool.useStateNumber({
+    name: 'height'
+  })
+
+  const [groups, setGroups] = Retool.useStateArray({
+    name: 'groups'
+  })
+
+  const [showLegend, setShowLegend] = Retool.useStateBoolean({
+    name: 'showLegend'
+  })
+
+  useEffect(() => {
+    if (chartContainerRef.current) {
+      // Group the data by unique group values
+      let seriesData;
+
+      if (groups && groups.length > 0) {
+        // Group the data by unique group values
+        const uniqueGroups = [...new Set(groups)];
+        
+        seriesData = uniqueGroups.map((group, groupIndex) => ({
+          name: group,
+          data: labels.map((label, index) => {
+            if (groups[index] === group) {
+              return {
+                name: label,
+                x: xValues[index],
+                y: yValues[index],
+                z: zValues[index]
+              }
+            }
+            return null;
+          }).filter(Boolean),
+          color: colors[groupIndex % colors.length]
+        }));
+      } else {
+        // No groups - create single series
+        seriesData = [{
+          data: labels.map((label, index) => ({
+            name: label,
+            x: xValues[index],
+            y: yValues[index],
+            z: zValues[index],
+            color: colors[index]
+          }))
+        }];
+      }
+
+      const options: Highcharts.Options = {
+        chart: {
+          type: 'bubble',
+          reflow: true,
+          backgroundColor: 'transparent',
+          width: width,
+          height: height
+        },
+        xAxis: {
+          title: {
+            text: xLabel
+          },
+          gridLineWidth: 1,
+          startOnTick: true,
+          endOnTick: true,
+          showLastLabel: true
+        },
+        yAxis: {
+          title: {
+            text: yLabel
+          },
+          gridLineWidth: 1,
+          startOnTick: true,
+          endOnTick: true,
+          showLastLabel: true
+        },
+        tooltip: {
+          headerFormat: '',
+          pointFormat: '<span style="color:{point.color}">\u25cf</span> ' +
+            '{point.name}<br/>' +
+            `${xLabel}: {point.x}<br/>` +
+            `${yLabel}: {point.y}<br/>` +
+            `${zLabel}: {point.z}<br/>` +
+            'Group: {series.name}'
+        },
+        title: {
+          text: title
+        },
+        subtitle: {
+          text: subtitle
+        },
+        series: seriesData,
+        legend: {
+          enabled: showLegend
+        }
+        }
+      };
+      
+      Highcharts.chart(chartContainerRef.current, options)
+    }
+  }, [
+    xValues, yValues, zValues, labels, colors, 
+    title, subtitle, width, height,
+    xLabel, yLabel, zLabel,
+    groups, showLegend
+  ]);
 
   return <div ref={chartContainerRef} />
 }
