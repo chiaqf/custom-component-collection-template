@@ -224,11 +224,11 @@ export const BubbleChart: FC = () => {
         series: seriesData,
         legend: {
           enabled: showLegend
-        }
-        }
-      };
+        },
+        };
+
       
-      Highcharts.chart(chartContainerRef.current, options)
+      Highcharts.chart(chartContainerRef.current, options);
     }
   }, [
     xValues, yValues, zValues, labels, colors, 
