@@ -38,7 +38,7 @@ export const PieChart: FC = () => {
 
   useEffect(() => {
     if (chartContainerRef.current) {
-      const data = labels.map((label, index) => ({
+      const data = (labels || []).map((label, index) => ({
         name: label,
         y: values[index],
         color: colors[index]
@@ -236,6 +236,113 @@ export const BubbleChart: FC = () => {
     xLabel, yLabel, zLabel,
     groups, showLegend
   ]);
+
+  return <div ref={chartContainerRef} />
+}
+
+export const BarChart: FC = () => {
+  const chartContainerRef = useRef<HTMLDivElement>(null)
+  
+  const [data, setData] = Retool.useStateArray({
+    name: 'data'
+  })
+
+  const [categories, setCategories] = Retool.useStateArray({
+    name: 'categories'
+  })
+
+  const [colors, setColors] = Retool.useStateArray({
+    name: 'colors'
+  })
+
+  const [title, setTitle] = Retool.useStateString({
+    name: 'title'
+  })
+
+  const [subtitle, setSubtitle] = Retool.useStateString({
+    name: 'subtitle'
+  })
+
+  const [showLegend, setShowLegend] = Retool.useStateBoolean({
+    name: 'showLegend'
+  })
+
+  const [width, setWidth] = Retool.useStateNumber({
+    name: 'width'
+  })
+
+  const [height, setHeight] = Retool.useStateNumber({
+    name: 'height'
+  })
+
+  const [layout, setLayout] = Retool.useStateString({
+    name: 'layout',
+    defaultValue: 'bar'
+  })
+
+  const [seriesNames, setSeriesNames] = Retool.useStateArray({
+    name: 'seriesNames'
+  })
+
+  useEffect(() => {
+    if (chartContainerRef.current) {
+      // Handle multiple series if data is nested array, otherwise single series
+      const seriesData = Array.isArray(data[0]) 
+        ? data.map((series, index) => ({
+            data: series,
+            color: colors[index % colors.length],
+            name: seriesNames[index]
+          }))
+        : [{
+            data,
+            color: colors[0],
+            name: seriesNames[0]
+          }];
+
+      const options: Highcharts.Options = {
+        chart: {
+          type: layout,
+          reflow: true,
+          backgroundColor: 'transparent',
+          width: width,
+          height: height
+        },
+        xAxis: {
+          categories: categories,
+          gridLineWidth: 0
+        },
+        yAxis: {
+          title: {
+            text: null
+          },
+          gridLineWidth: 1
+        },
+        tooltip: {
+          headerFormat: '{point.key}<br/>',
+          pointFormat: '<span style="color:{point.color}">\u25cf</span> : <b>{point.y}</b><br/>'
+        },
+        title: {
+          text: title
+        },
+        subtitle: {
+          text: subtitle
+        },
+        legend: {
+          enabled: showLegend
+        },
+        plotOptions: {
+          bar: {
+            dataLabels: {
+              enabled: true
+            }
+          }
+        },
+        series: seriesData
+      };
+      
+      Highcharts.chart(chartContainerRef.current, options)
+    }
+  }, [data, categories, colors, title, subtitle, showLegend, width, height]);
 
   return <div ref={chartContainerRef} />
 }
