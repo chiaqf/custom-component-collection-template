@@ -346,3 +346,216 @@ export const BarChart: FC = () => {
 
   return <div ref={chartContainerRef} />
 }
+
+export const PackedBubbleChart: FC = () => {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  const [labels, setLabels] = Retool.useStateArray({
+    name: 'labels'
+  });
+
+  const [values, setValues] = Retool.useStateArray({
+    name: 'values'
+  });
+
+  const [groups, setGroups] = Retool.useStateArray({
+    name: 'groups'  // Array of group names, same length as labels and values
+  });
+
+  const [minBubbleSize, setMinBubbleSize] = Retool.useStateNumber({
+    name: 'minBubbleSize'
+  });
+
+  const [maxBubbleSize, setMaxBubbleSize] = Retool.useStateNumber({
+    name: 'maxBubbleSize'
+  });
+
+  const [title, setTitle] = Retool.useStateString({
+    name: 'title'
+  });
+
+  const [subtitle, setSubtitle] = Retool.useStateString({
+    name: 'subtitle'
+  });
+
+  const [width, setWidth] = Retool.useStateNumber({
+    name: 'width'
+  });
+
+  const [height, setHeight] = Retool.useStateNumber({
+    name: 'height'
+  });  
+
+  const [showLegend, setShowLegend] = Retool.useStateBoolean({
+    name: 'showLegend'
+  });
+
+  const [labelThreshold, setLabelThreshold] = Retool.useStateNumber({
+    name: 'labelThreshold'
+  });
+
+  useEffect(() => {
+    if (chartContainerRef.current) {
+      // Organize data by group
+      const groupedData = (labels || []).reduce((acc, label, index) => {
+        const group = groups[index];
+        if (!acc[group]) acc[group] = [];
+        acc[group].push({ name: label, value: values[index] });
+        return acc;
+      }, {});
+
+      // Map grouped data into series format
+      const series = Object.keys(groupedData).map((groupName) => ({
+        type: 'packedbubble',
+        name: groupName,
+        data: groupedData[groupName],
+        dataLabels: {
+          enabled: true,
+          format: '{point.name}', // Show label if value meets the threshold
+          filter: {
+            property: 'value',
+            operator: '>=',
+            value: labelThreshold  // Only show labels if value is above threshold
+          },
+          style: {
+            color: 'black',
+            textOutline: 'none',
+            fontWeight: 'bold'
+          }
+        }
+      }));
+
+      const options: Highcharts.Options = {
+        chart: {
+          type: 'packedbubble',
+          reflow: true,
+          backgroundColor: 'transparent',
+          width: width,
+          height: height
+        },
+        title: {
+          text: title
+        },
+        subtitle: {
+          text: subtitle
+        },
+        tooltip: {
+          headerFormat: '',
+          pointFormat: '<span style="color:{point.color}">\u25cf</span> {point.name}: <b>{point.value}</b><br/>'
+        },
+        legend: {
+          enabled: showLegend
+        },
+        series: series.map((s) => ({
+          ...s,
+          minSize: minBubbleSize,
+          maxSize: maxBubbleSize
+        }))
+      };
+
+      Highcharts.chart(chartContainerRef.current, options);
+    }
+  }, [labels, values, groups, minBubbleSize, maxBubbleSize, title, subtitle, width, height, showLegend, labelThreshold]);
+
+  return <div ref={chartContainerRef} />;
+};
+
+
+export const SplitPackedBubbleChart: FC = () => {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  // Existing Retool states
+  const [minBubbleSize, setMinBubbleSize] = Retool.useStateNumber({
+    name: 'minBubbleSize'
+  });
+
+  const [maxBubbleSize, setMaxBubbleSize] = Retool.useStateNumber({
+    name: 'maxBubbleSize'
+  });
+
+  const [title, setTitle] = Retool.useStateString({
+    name: 'title'
+  });
+
+  const [subtitle, setSubtitle] = Retool.useStateString({
+    name: 'subtitle'
+  });
+
+  const [width, setWidth] = Retool.useStateNumber({
+    name: 'width'
+  });
+
+  const [height, setHeight] = Retool.useStateNumber({
+    name: 'height'
+  });  
+
+  const [showLegend, setShowLegend] = Retool.useStateBoolean({
+    name: 'showLegend'
+  });
+
+  // New Retool state for `seriesData` holding the data structure
+  const [seriesData, setSeriesData] = Retool.useStateArray({
+    name: 'seriesData' // This should contain the split-packed bubble data, structured like Highcharts' `series` property
+  });
+
+  useEffect(() => {
+    if (chartContainerRef.current && seriesData) {
+      const options: Highcharts.Options = {
+        chart: {
+          type: 'packedbubble',
+          reflow: true,
+          backgroundColor: 'transparent',
+          width: width,
+          height: height
+        },
+        title: {
+          text: title
+        },
+        subtitle: {
+          text: subtitle
+        },
+        tooltip: {
+          useHTML: true,
+          pointFormat: '<b>{point.name}:</b> {point.value}m CO<sub>2</sub>'
+        },
+        legend: {
+          enabled: showLegend
+        },
+        plotOptions: {
+          packedbubble: {
+            minSize: `${minBubbleSize}%`,
+            maxSize: `${maxBubbleSize}%`,
+            zMin: 0,
+            zMax: 1000,
+            layoutAlgorithm: {
+              gravitationalConstant: 0.05,
+              splitSeries: true,
+              seriesInteraction: false,
+              dragBetweenSeries: true,
+              parentNodeLimit: true
+            },
+            dataLabels: {
+              enabled: true,
+              format: '{point.name}',
+              filter: {
+                property: 'y',
+                operator: '>',
+                value: 250
+              },
+              style: {
+                color: 'black',
+                textOutline: 'none',
+                fontWeight: 'normal'
+              }
+            }
+          }
+        },
+        series: seriesData // Use data from Retool state
+      };
+
+      Highcharts.chart(chartContainerRef.current, options);
+    }
+  }, [seriesData, minBubbleSize, maxBubbleSize, title, subtitle, width, height, showLegend]);
+
+  return <div ref={chartContainerRef} />;
+};
