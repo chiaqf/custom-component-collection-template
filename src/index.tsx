@@ -2,7 +2,9 @@ import React from 'react'
 import { type FC, useEffect, useRef } from 'react'
 import Highcharts from 'highcharts'
 import HighchartsMore from 'highcharts/highcharts-more'
+import AnnotationsModule from 'highcharts/modules/annotations';
 HighchartsMore(Highcharts) // Initialize highcharts-more module for bubble charts
+AnnotationsModule(Highcharts) // Initialize annotations module
 
 import { Retool } from '@tryretool/custom-component-support'
 
@@ -119,6 +121,10 @@ export const BubbleChart: FC = () => {
     name: 'colors'
   })
 
+  const [defaultColor, setDefaultColor] = Retool.useStateString({
+    name: 'defaultColor'
+  });
+
   const [title, setTitle] = Retool.useStateString({
     name: 'title'
   })
@@ -143,6 +149,9 @@ export const BubbleChart: FC = () => {
     name: 'showLegend'
   })
 
+  const [xAxisType, setXAxisType] = Retool.useStateString({ name: 'xAxisType' });
+  const [yAxisType, setYAxisType] = Retool.useStateString({ name: 'yAxisType' });
+  
   useEffect(() => {
     if (chartContainerRef.current) {
       // Group the data by unique group values
@@ -175,7 +184,7 @@ export const BubbleChart: FC = () => {
             x: xValues[index],
             y: yValues[index],
             z: zValues[index],
-            color: colors[index]
+            color: colors[index] || defaultColor
           }))
         }];
       }
@@ -192,19 +201,21 @@ export const BubbleChart: FC = () => {
           title: {
             text: xLabel
           },
+          type: xAxisType as 'linear' | 'logarithmic',
           gridLineWidth: 1,
           startOnTick: true,
           endOnTick: true,
-          showLastLabel: true
+          showLastLabel: true,
         },
         yAxis: {
           title: {
             text: yLabel
           },
+          type: yAxisType as 'linear' | 'logarithmic',
           gridLineWidth: 1,
           startOnTick: true,
           endOnTick: true,
-          showLastLabel: true
+          showLastLabel: true,
         },
         tooltip: {
           headerFormat: '',
@@ -234,7 +245,8 @@ export const BubbleChart: FC = () => {
     xValues, yValues, zValues, labels, colors, 
     title, subtitle, width, height,
     xLabel, yLabel, zLabel,
-    groups, showLegend
+    groups, showLegend,
+    xAxisType, yAxisType
   ]);
 
   return <div ref={chartContainerRef} />
@@ -393,6 +405,7 @@ export const PackedBubbleChart: FC = () => {
   const [labelThreshold, setLabelThreshold] = Retool.useStateNumber({
     name: 'labelThreshold'
   });
+
 
   useEffect(() => {
     if (chartContainerRef.current) {
@@ -556,6 +569,120 @@ export const SplitPackedBubbleChart: FC = () => {
       Highcharts.chart(chartContainerRef.current, options);
     }
   }, [seriesData, minBubbleSize, maxBubbleSize, title, subtitle, width, height, showLegend]);
+
+  return <div ref={chartContainerRef} />;
+};
+
+export const AreaChart: FC = () => {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  // Retool states for user-defined inputs
+  const [title, setTitle] = Retool.useStateString({ name: 'title' });
+  const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
+  const [yAxisTitle, setYAxisTitle] = Retool.useStateString({ name: 'yAxisTitle' });
+  const [xAxisCategories, setXAxisCategories] = Retool.useStateArray({ name: 'xAxisCategories' });
+  
+  // [
+  //   {
+  //     "name": "historical",
+  //     "data": [2, 9, 13, 50, 170, 299, 438, 200, 150, 30, 1]
+  //   },
+  //   {
+  //     "name": "monte carlo",
+  //     "data": [2, 9, 13, 50, 270, 299, 338, 200, 220, 150, 30, 1]
+  //   }
+  // ]
+  
+  const [seriesData, setSeriesData] = Retool.useStateArray({ name: 'seriesData' });
+  const [smooth, setSmooth] = Retool.useStateBoolean({ name: 'smooth' });
+  const [showMarkers, setShowMarkers] = Retool.useStateBoolean({ name: 'showMarkers' });
+
+
+  //[
+  // { "x": 1, "label": "99%" },
+  // { "x": 2, "label": "95%" }
+  // ]
+  const [verticalLines, setVerticalLines] = Retool.useStateArray({
+    name: 'verticalLines' 
+  });
+
+  useEffect(() => {
+    if (chartContainerRef.current && seriesData) {
+      const options: Highcharts.Options = {
+        chart: {
+          type: smooth ? 'areaspline' : 'area'
+        },
+        accessibility: {
+          description: 'An area chart comparing different data series over time.'
+        },
+        title: {
+          text: title || 'Default Title'
+        },
+        subtitle: {
+          text: subtitle || 'Default Subtitle'
+        },
+        xAxis: {
+          categories: xAxisCategories,
+          allowDecimals: false,
+          accessibility: {
+            rangeDescription: `Range: ${xAxisCategories[0]} to ${xAxisCategories[xAxisCategories.length - 1]}.`
+          },
+          plotLines: verticalLines.map((line) => ({
+            color: 'red', // Customize line color
+            width: 2, // Line width
+            value: xAxisCategories.indexOf(line.x), // Position line at specified X value
+            dashStyle: 'ShortDash',
+            label: {
+              text: line.label,
+              align: 'center',
+              rotation: 0,
+              y: -10 // Adjust label position as needed
+            }
+          }))
+        },
+        yAxis: {
+          title: {
+            text: yAxisTitle || 'Y-Axis Title'
+          }
+        },
+        tooltip: {
+          pointFormat: '{series.name} had <b>{point.y:,.0f}</b><br/>at {point.x}'
+        },
+        plotOptions: {
+          areaspline: {
+            marker: {
+              enabled: showMarkers,
+              symbol: 'circle',
+              radius: 2,
+              states: {
+                hover: {
+                  enabled: true
+                }
+              }
+            }
+          },
+          area: {
+            marker: {
+              enabled: showMarkers,
+              symbol: 'circle',
+              radius: 2,
+              states: {
+                hover: {
+                  enabled: true
+                }
+              }
+            }
+          }
+        },
+        series: seriesData.map((series) => ({
+          ...series,
+          type: smooth ? 'areaspline' : 'area'
+        }))
+      };
+
+      Highcharts.chart(chartContainerRef.current, options);
+    }
+  }, [title, subtitle, yAxisTitle, xAxisCategories, seriesData, smooth, showMarkers, verticalLines]);
 
   return <div ref={chartContainerRef} />;
 };
