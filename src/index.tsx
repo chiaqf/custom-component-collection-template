@@ -331,8 +331,7 @@ export const BarChart: FC = () => {
         },
         tooltip: {
           headerFormat: '{point.key}<br/>',
-          pointFormat: '<span style="color:{point.color}">\u25cf</span> : <b>{point.y}</b><br/>'
-        },
+          pointFormat: '<span style="color:{point.color}">\u25cf</span> {series.name}: <b>{point.y}</b><br/>'        },
         title: {
           text: title
         },
@@ -406,22 +405,41 @@ export const PackedBubbleChart: FC = () => {
     name: 'labelThreshold'
   });
 
+  const [colors, setColors] = Retool.useStateArray({
+    name: 'colors'
+  });
 
   useEffect(() => {
     if (chartContainerRef.current) {
+      // Create a color map for groups
+      const colorMap = {};
+      const defaultColors = ['#7cb5ec', '#434348', '#90ed7d', '#f7a35c', '#8085e9', '#f15c80', '#e4d354', '#2b908f', '#f45b5b', '#91e8e1'];
+      const colorsToUse = colors && colors.length > 0 ? colors : defaultColors;
+  
+      groups.forEach((group, index) => {
+        if (!colorMap[group]) {
+          colorMap[group] = colorsToUse[index % colorsToUse.length]; // Cycle through colors if more groups than colors
+        }
+      });
+  
       // Organize data by group
       const groupedData = (labels || []).reduce((acc, label, index) => {
         const group = groups[index];
         if (!acc[group]) acc[group] = [];
-        acc[group].push({ name: label, value: values[index] });
+        acc[group].push({
+          name: label,
+          value: values[index],
+          color: colorMap[group] // Assign color based on group
+        });
         return acc;
       }, {});
-
+  
       // Map grouped data into series format
       const series = Object.keys(groupedData).map((groupName) => ({
         type: 'packedbubble',
         name: groupName,
         data: groupedData[groupName],
+        color: colorMap[groupName], // Ensure legend color matches bubble color
         dataLabels: {
           enabled: true,
           format: '{point.name}', // Show label if value meets the threshold
@@ -437,7 +455,7 @@ export const PackedBubbleChart: FC = () => {
           }
         }
       }));
-
+  
       const options: Highcharts.Options = {
         chart: {
           type: 'packedbubble',
@@ -465,11 +483,11 @@ export const PackedBubbleChart: FC = () => {
           maxSize: maxBubbleSize
         }))
       };
-
+  
       Highcharts.chart(chartContainerRef.current, options);
     }
-  }, [labels, values, groups, minBubbleSize, maxBubbleSize, title, subtitle, width, height, showLegend, labelThreshold]);
-
+  }, [labels, values, groups, minBubbleSize, maxBubbleSize, title, subtitle, width, height, showLegend, labelThreshold, colors]);
+  
   return <div ref={chartContainerRef} />;
 };
 
