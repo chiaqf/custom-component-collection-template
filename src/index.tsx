@@ -3,6 +3,10 @@ import { type FC, useEffect, useRef } from 'react'
 import Highcharts from 'highcharts'
 import HighchartsMore from 'highcharts/highcharts-more'
 import AnnotationsModule from 'highcharts/modules/annotations';
+import HighchartsTreemap from 'highcharts/modules/treemap';
+import HighchartsHeatmap from 'highcharts/modules/heatmap';
+HighchartsHeatmap(Highcharts);
+HighchartsTreemap(Highcharts);
 HighchartsMore(Highcharts) // Initialize highcharts-more module for bubble charts
 AnnotationsModule(Highcharts) // Initialize annotations module
 
@@ -296,6 +300,14 @@ export const BarChart: FC = () => {
     name: 'seriesNames'
   })
 
+  const [reverseYAxis, setReverseYAxis] = Retool.useStateBoolean({
+    name: 'reverseYAxis'
+  })
+
+  const [dataSorting, setDataSorting] = Retool.useStateBoolean({
+    name: 'dataSorting'
+  })
+
   useEffect(() => {
     if (chartContainerRef.current) {
       // Handle multiple series if data is nested array, otherwise single series
@@ -327,7 +339,8 @@ export const BarChart: FC = () => {
           title: {
             text: null
           },
-          gridLineWidth: 1
+          gridLineWidth: 1,
+          reversed: reverseYAxis
         },
         tooltip: {
           headerFormat: '{point.key}<br/>',
@@ -345,6 +358,17 @@ export const BarChart: FC = () => {
           bar: {
             dataLabels: {
               enabled: true
+            },
+            dataSorting: {
+              enabled: dataSorting
+            }
+          },
+          column: {
+            dataLabels: {
+              enabled: true
+            },
+            dataSorting: {
+              enabled: dataSorting
             }
           }
         },
@@ -353,7 +377,7 @@ export const BarChart: FC = () => {
       
       Highcharts.chart(chartContainerRef.current, options)
     }
-  }, [data, categories, colors, title, subtitle, showLegend, width, height]);
+  }, [data, categories, colors, title, subtitle, showLegend, width, height, dataSorting]);
 
   return <div ref={chartContainerRef} />
 }
@@ -701,6 +725,156 @@ export const AreaChart: FC = () => {
       Highcharts.chart(chartContainerRef.current, options);
     }
   }, [title, subtitle, yAxisTitle, xAxisCategories, seriesData, smooth, showMarkers, verticalLines]);
+
+  return <div ref={chartContainerRef} />;
+};
+
+
+
+export const TreemapChart: FC = () => {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [labels, setLabels] = Retool.useStateArray({ name: 'labels' });
+  const [values, setValues] = Retool.useStateArray({ name: 'values' });
+  const [colors, setColors] = Retool.useStateArray({ name: 'colors' });
+  const [title, setTitle] = Retool.useStateString({ name: 'title' });
+  const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
+  const [width, setWidth] = Retool.useStateNumber({ name: 'width' });
+  const [height, setHeight] = Retool.useStateNumber({ name: 'height' });
+
+  useEffect(() => {
+    if (chartContainerRef.current) {
+      const totalValue = values.reduce((acc, val) => acc + val, 0);
+
+      const data = (labels || []).map((label, index) => ({
+        name: label,
+        value: values[index],
+        color: colors[index],  // Set color directly
+        percentage: ((values[index] / totalValue) * 100).toFixed(1)
+      }));
+
+      const options: Highcharts.Options = {
+        chart: {
+          type: 'treemap',
+          reflow: true,
+          backgroundColor: 'transparent',
+          width: width,
+          height: height
+        },
+        title: {
+          text: title
+        },
+        subtitle: {
+          text: subtitle
+        },
+        series: [{
+          type: 'treemap',
+          layoutAlgorithm: 'squarified',
+          clip: false,
+          data: data,
+          dataLabels: {
+            enabled: true,
+            formatter: function() {
+              return `<b>${this.point.name}</b><br>${this.point.percentage}%`;
+            },
+            style: {
+              fontSize: '12px'
+            }
+          }
+        }]
+      };
+
+      Highcharts.chart(chartContainerRef.current, options);
+    }
+  }, [labels, values, colors, title, subtitle, width, height]);
+
+  return <div ref={chartContainerRef} />;
+};
+
+export const HeatmapChart: FC = () => {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [data, setData] = Retool.useStateArray({ name: 'data' });
+  const [title, setTitle] = Retool.useStateString({ name: 'title' });
+  const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
+  const [width, setWidth] = Retool.useStateNumber({ name: 'width' });
+  const [height, setHeight] = Retool.useStateNumber({ name: 'height' });
+  const [colorRange, setColorRange] = Retool.useStateArray({ name: 'colorRange' }); // [minColor, maxColor]
+  const [valueRange, setValueRange] = Retool.useStateArray({ name: 'valueRange' }); // [minValue, maxValue]
+  const [xAxisCategories, setXAxisCategories] = Retool.useStateArray({ name: 'xAxisCategories' });
+  const [yAxisCategories, setYAxisCategories] = Retool.useStateArray({ name: 'yAxisCategories' });
+  const [xAxisTitle, setXAxisTitle] = Retool.useStateString({ name: 'xAxisTitle' });
+  const [yAxisTitle, setYAxisTitle] = Retool.useStateString({ name: 'yAxisTitle' });
+  const [valueLabel, setValueLabel] = Retool.useStateString({ name: 'valueLabel' });
+
+  useEffect(() => {
+    if (chartContainerRef.current) {
+      const options: Highcharts.Options = {
+        chart: {
+          type: 'heatmap',
+          // marginTop: 40,
+          // marginBottom: 80,
+          plotBorderWidth: 0,
+          backgroundColor: 'transparent',
+          width: width,
+          height: height,
+          plotBorderColor: '#000000' // Sets the color of the border (e.g., black)
+        },
+        title: {
+          text: title,
+          style: { fontSize: '1em' }
+        },
+        subtitle: {
+          text: subtitle,
+          style: { fontSize: '1em' }
+        },
+        xAxis: {
+          categories: xAxisCategories,
+          title: {
+            text: xAxisTitle
+          }
+        },
+        yAxis: {
+          categories: yAxisCategories,
+          title: {
+            text: yAxisTitle
+          },
+          reversed: true
+        },
+        colorAxis: {
+          min: valueRange[0],
+          max: valueRange[1],
+          minColor: colorRange[0],
+          maxColor: colorRange[1]
+        },
+        legend: {
+          align: 'right',
+          layout: 'vertical',
+          margin: 0,
+          verticalAlign: 'top',
+          y: 25,
+          symbolHeight: 280
+        },
+        tooltip: {
+          formatter: function () {
+            return `<b>${xAxisTitle}</b> : ${this.point.x}<br>` +
+                   `<b>${yAxisTitle}</b> : ${this.point.y}<br>` +
+                   `<b>${valueLabel}</b> : ${this.point.value}`;
+          }
+        },
+        series: [{
+          type: 'heatmap',
+          borderWidth: 1,
+          borderColor: '#000000',
+          data: data,
+          dataLabels: {
+            enabled: true,
+            color: '#000000'
+          }
+        }]
+      };
+
+      Highcharts.chart(chartContainerRef.current, options);
+    }
+  }, [xAxisCategories, yAxisCategories, data, title, subtitle, width, height, xAxisTitle, yAxisTitle, valueLabel]);
 
   return <div ref={chartContainerRef} />;
 };
