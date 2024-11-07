@@ -5,6 +5,8 @@ import HighchartsMore from 'highcharts/highcharts-more'
 import AnnotationsModule from 'highcharts/modules/annotations';
 import HighchartsTreemap from 'highcharts/modules/treemap';
 import HighchartsHeatmap from 'highcharts/modules/heatmap';
+import HighchartsSunburst from 'highcharts/modules/sunburst';
+HighchartsSunburst(Highcharts); // Initialize sunburst module
 HighchartsHeatmap(Highcharts);
 HighchartsTreemap(Highcharts);
 HighchartsMore(Highcharts) // Initialize highcharts-more module for bubble charts
@@ -69,6 +71,9 @@ export const PieChart: FC = () => {
       },
       subtitle: {
         text: subtitle
+      },
+      credits: {
+        enabled: false
       },
       series: [{
           allowPointSelect: true,
@@ -155,6 +160,7 @@ export const BubbleChart: FC = () => {
 
   const [xAxisType, setXAxisType] = Retool.useStateString({ name: 'xAxisType' });
   const [yAxisType, setYAxisType] = Retool.useStateString({ name: 'yAxisType' });
+  const [labelThreshold, setLabelThreshold] = Retool.useStateNumber({ name: 'labelThreshold' });
   
   useEffect(() => {
     if (chartContainerRef.current) {
@@ -236,10 +242,24 @@ export const BubbleChart: FC = () => {
         subtitle: {
           text: subtitle
         },
-        series: seriesData,
-        legend: {
+        series: seriesData.map(series => ({
+          ...series,
+          dataLabels: {
+            enabled: true,
+            formatter: function () {
+              return this.point.name;
+            },
+            style: {
+              color: '#000000', // Adjust label color if needed
+              textOutline: 'none'
+            }
+          }
+        })),        legend: {
           enabled: showLegend
         },
+        credits: {
+          enabled: false
+        }
         };
 
       
@@ -250,7 +270,7 @@ export const BubbleChart: FC = () => {
     title, subtitle, width, height,
     xLabel, yLabel, zLabel,
     groups, showLegend,
-    xAxisType, yAxisType
+    xAxisType, yAxisType, labelThreshold
   ]);
 
   return <div ref={chartContainerRef} />
@@ -372,7 +392,10 @@ export const BarChart: FC = () => {
             }
           }
         },
-        series: seriesData
+        series: seriesData,
+        credits: {
+          enabled: false
+      },
       };
       
       Highcharts.chart(chartContainerRef.current, options)
@@ -501,6 +524,9 @@ export const PackedBubbleChart: FC = () => {
         legend: {
           enabled: showLegend
         },
+        credits: {
+          enabled: false
+        },
         series: series.map((s) => ({
           ...s,
           minSize: minBubbleSize,
@@ -605,7 +631,10 @@ export const SplitPackedBubbleChart: FC = () => {
             }
           }
         },
-        series: seriesData // Use data from Retool state
+        series: seriesData, // Use data from Retool state
+        credits: {
+          enabled: false
+        }
       };
 
       Highcharts.chart(chartContainerRef.current, options);
@@ -622,31 +651,12 @@ export const AreaChart: FC = () => {
   const [title, setTitle] = Retool.useStateString({ name: 'title' });
   const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
   const [yAxisTitle, setYAxisTitle] = Retool.useStateString({ name: 'yAxisTitle' });
-  const [xAxisCategories, setXAxisCategories] = Retool.useStateArray({ name: 'xAxisCategories' });
-  
-  // [
-  //   {
-  //     "name": "historical",
-  //     "data": [2, 9, 13, 50, 170, 299, 438, 200, 150, 30, 1]
-  //   },
-  //   {
-  //     "name": "monte carlo",
-  //     "data": [2, 9, 13, 50, 270, 299, 338, 200, 220, 150, 30, 1]
-  //   }
-  // ]
-  
-  const [seriesData, setSeriesData] = Retool.useStateArray({ name: 'seriesData' });
+  const [xAxisValues, setXAxisValues] = Retool.useStateArray({ name: 'xAxisValues' }); // Array of x values
+  const [seriesData, setSeriesData] = Retool.useStateArray({ name: 'seriesData' }); // Array of series with x, y pairs
   const [smooth, setSmooth] = Retool.useStateBoolean({ name: 'smooth' });
   const [showMarkers, setShowMarkers] = Retool.useStateBoolean({ name: 'showMarkers' });
-
-
-  //[
-  // { "x": 1, "label": "99%" },
-  // { "x": 2, "label": "95%" }
-  // ]
-  const [verticalLines, setVerticalLines] = Retool.useStateArray({
-    name: 'verticalLines' 
-  });
+  const [verticalLines, setVerticalLines] = Retool.useStateArray({ name: 'verticalLines' });
+  const [colors, setColors] = Retool.useStateArray({ name: 'colors' });
 
   useEffect(() => {
     if (chartContainerRef.current && seriesData) {
@@ -658,34 +668,36 @@ export const AreaChart: FC = () => {
           description: 'An area chart comparing different data series over time.'
         },
         title: {
-          text: title || 'Default Title'
+          text: title || " "
         },
         subtitle: {
-          text: subtitle || 'Default Subtitle'
+          text: subtitle || " "
         },
         xAxis: {
-          categories: xAxisCategories,
-          allowDecimals: false,
+          title: {
+            text: 'X-Axis'
+          },
+          type: 'linear', // Use linear axis for numeric x values
           accessibility: {
-            rangeDescription: `Range: ${xAxisCategories[0]} to ${xAxisCategories[xAxisCategories.length - 1]}.`
+            rangeDescription: `Range: ${Math.min(...xAxisValues)} to ${Math.max(...xAxisValues)}.`
           },
           plotLines: verticalLines.map((line) => ({
             color: 'red', // Customize line color
             width: 2, // Line width
-            value: xAxisCategories.indexOf(line.x), // Position line at specified X value
+            value: line.x, // Position line at specified X value
             dashStyle: 'ShortDash',
             label: {
               text: line.label,
               align: 'center',
               rotation: 0,
-              y: -10 // Adjust label position as needed
+              y: -5,
             }
           }))
         },
         yAxis: {
           title: {
             text: yAxisTitle || 'Y-Axis Title'
-          }
+          },
         },
         tooltip: {
           pointFormat: '{series.name} had <b>{point.y:,.0f}</b><br/>at {point.x}'
@@ -716,15 +728,20 @@ export const AreaChart: FC = () => {
             }
           }
         },
-        series: seriesData.map((series) => ({
+        credits: {
+          enabled: false
+        },
+        series: seriesData.map((series, index) => ({
           ...series,
-          type: smooth ? 'areaspline' : 'area'
+          type: smooth ? 'areaspline' : 'area',
+          color: colors[index],  // Apply color based on the index
+          data: series.data.map((y, index) => ({ x: xAxisValues[index], y })) // Pair x and y values
         }))
       };
 
       Highcharts.chart(chartContainerRef.current, options);
     }
-  }, [title, subtitle, yAxisTitle, xAxisCategories, seriesData, smooth, showMarkers, verticalLines]);
+  }, [title, subtitle, yAxisTitle, xAxisValues, seriesData, smooth, showMarkers, verticalLines]);
 
   return <div ref={chartContainerRef} />;
 };
@@ -743,13 +760,13 @@ export const TreemapChart: FC = () => {
 
   useEffect(() => {
     if (chartContainerRef.current) {
-      const totalValue = values.reduce((acc, val) => acc + val, 0);
+      const totalValue = (values || []).reduce((acc, val) => acc + (val || 0), 0);
 
       const data = (labels || []).map((label, index) => ({
-        name: label,
-        value: values[index],
-        color: colors[index],  // Set color directly
-        percentage: ((values[index] / totalValue) * 100).toFixed(1)
+        name: label || '',
+        value: (values || [])[index] || 0,
+        color: (colors || [])[index],  // Color can be undefined
+        percentage: (((values || [])[index] || 0) / (totalValue || 1) * 100).toFixed(1)
       }));
 
       const options: Highcharts.Options = {
@@ -765,6 +782,9 @@ export const TreemapChart: FC = () => {
         },
         subtitle: {
           text: subtitle
+        },
+        credits: {
+          enabled: false
         },
         series: [{
           type: 'treemap',
@@ -839,6 +859,9 @@ export const HeatmapChart: FC = () => {
           },
           reversed: true
         },
+        credits: {
+          enabled: false
+        },
         colorAxis: {
           min: valueRange[0],
           max: valueRange[1],
@@ -855,8 +878,8 @@ export const HeatmapChart: FC = () => {
         },
         tooltip: {
           formatter: function () {
-            return `<b>${xAxisTitle}</b> : ${this.point.x}<br>` +
-                   `<b>${yAxisTitle}</b> : ${this.point.y}<br>` +
+            return `<b>${xAxisTitle}</b> : ${xAxisCategories[this.point.x]}<br>` +
+                   `<b>${yAxisTitle}</b> : ${yAxisCategories[this.point.y]}<br>` +
                    `<b>${valueLabel}</b> : ${this.point.value}`;
           }
         },
@@ -877,4 +900,491 @@ export const HeatmapChart: FC = () => {
   }, [xAxisCategories, yAxisCategories, data, title, subtitle, width, height, xAxisTitle, yAxisTitle, valueLabel]);
 
   return <div ref={chartContainerRef} />;
+};
+
+
+// Add this component after your other chart components
+export const SunburstChart: FC = () => {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  // Retool states for the chart configuration
+  const [data, setData] = Retool.useStateArray({
+    name: 'data'  // Hierarchical data structure
+  });
+
+  const [title, setTitle] = Retool.useStateString({
+    name: 'title'
+  });
+
+  const [subtitle, setSubtitle] = Retool.useStateString({
+    name: 'subtitle'
+  });
+
+  const [width, setWidth] = Retool.useStateNumber({
+    name: 'width'
+  });
+
+  const [height, setHeight] = Retool.useStateNumber({
+    name: 'height'
+  });
+
+  const [colors, setColors] = Retool.useStateArray({
+    name: 'colors'
+  });
+
+  const [allowTraversingTree, setAllowTraversingTree] = Retool.useStateBoolean({
+    name: 'allowTraversingTree',
+    defaultValue: true
+  });
+
+  const [startAngle, setStartAngle] = Retool.useStateNumber({
+    name: 'startAngle',
+    defaultValue: 90
+  });
+
+  const [endAngle, setEndAngle] = Retool.useStateNumber({
+    name: 'endAngle',
+    defaultValue: 450
+  });
+
+  useEffect(() => {
+    if (chartContainerRef.current) {
+      const options: Highcharts.Options = {
+        chart: {
+          type: 'sunburst',
+          height: height || '100%',
+          width: width,
+          backgroundColor: 'transparent'
+        },
+
+        colors: colors && colors.length > 0 
+          ? colors 
+          : ['transparent'].concat(Highcharts.getOptions().colors),
+
+        title: {
+          text: title
+        },
+
+        subtitle: {
+          text: subtitle
+        },
+
+        credits: {
+          enabled: false
+        },
+
+        series: [{
+          type: 'sunburst',
+          data: data,
+          name: 'Root',
+          allowTraversingTree: allowTraversingTree,
+          borderRadius: 3,
+          cursor: 'pointer',
+          startAngle: startAngle,
+          endAngle: endAngle,
+          dataLabels: {
+            format: '{point.name}<br>({point.percent}%)',
+            filter: {
+              property: 'innerArcLength',
+              operator: '>',
+              value: 25
+            },
+            style: {
+              textOutline: 'none'
+            }
+          },
+          levels: [{
+            level: 1,
+            levelIsConstant: false,
+            dataLabels: {
+              filter: {
+                property: 'outerArcLength',
+                operator: '>',
+                value: 64
+              }
+            }
+          }, {
+            level: 2,
+            colorByPoint: true
+          }, {
+            level: 3,
+            colorVariation: {
+              key: 'brightness',
+              to: -0.5
+            }
+          }, {
+            level: 4,
+            colorVariation: {
+              key: 'brightness',
+              to: 0.5
+            }
+          }]
+        }],
+
+        tooltip: {
+          headerFormat: '',
+          pointFormat: '<b>{point.name}</b>: <b>{point.value}</b>'
+        }
+      };
+
+      Highcharts.chart(chartContainerRef.current, options);
+    }
+  }, [data, title, subtitle, width, height, allowTraversingTree, startAngle, endAngle]);
+
+  return (<div 
+    ref={chartContainerRef} 
+    style={{
+      margin: '0 auto',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100%'
+    }} 
+  />);
+
+};
+
+
+export const LineChart: FC = () => {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  // Retool states for user-defined inputs
+  const [title, setTitle] = Retool.useStateString({ name: 'title' });
+  const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
+  const [yAxisTitle, setYAxisTitle] = Retool.useStateString({ name: 'yAxisTitle' });
+  const [secondaryYAxisTitle, setSecondaryYAxisTitle] = Retool.useStateString({ name: 'secondaryYAxisTitle' });
+  const [xAxisValues, setXAxisValues] = Retool.useStateArray({ name: 'xAxisValues' });
+  const [seriesData, setSeriesData] = Retool.useStateArray({ name: 'seriesData' }); // Array of series objects
+  const [smooth, setSmooth] = Retool.useStateBoolean({ name: 'smooth' });
+  const [showMarkers, setShowMarkers] = Retool.useStateBoolean({ name: 'showMarkers' });
+  const [verticalLines, setVerticalLines] = Retool.useStateArray({ name: 'verticalLines' });
+  const [colors, setColors] = Retool.useStateArray({ name: 'colors' });
+  const [useSecondaryYAxis, setUseSecondaryYAxis] = Retool.useStateArray({ name: 'useSecondaryYAxis' }); // Array of booleans
+
+  useEffect(() => {
+    if (chartContainerRef.current && seriesData) {
+      const options: Highcharts.Options = {
+        chart: {
+          type: 'line'
+        },
+        title: {
+          text: title || " "
+        },
+        subtitle: {
+          text: subtitle || " "
+        },
+        xAxis: {
+          type: 'linear', // Use linear scale for numeric x-axis values
+          title: {
+            text: 'X-Axis'
+          },
+          accessibility: {
+            rangeDescription: `Range: ${Math.min(...xAxisValues)} to ${Math.max(...xAxisValues)}.`
+          },
+        },
+        yAxis: [
+          {
+            title: {
+              text: yAxisTitle || 'Primary Y-Axis'
+            },
+          },
+          {
+            title: {
+              text: secondaryYAxisTitle || 'Secondary Y-Axis'
+            },
+            opposite: true // Secondary y-axis on the right side
+          }
+        ],
+        tooltip: {
+          pointFormat: '{series.name} had <b>{point.y:,.0f}</b><br/>at {point.x}'
+        },
+        credits: {
+          enabled: false
+        },
+        plotOptions: {
+          line: {
+            marker: {
+              enabled: showMarkers,
+              symbol: 'circle',
+              radius: 3,
+              states: {
+                hover: {
+                  enabled: true
+                }
+              }
+            },
+            lineWidth: smooth ? 2 : 1
+          }
+        },
+        series: seriesData.map((series, index) => ({
+          ...series,
+          type: 'line',
+          color: colors[index],
+          yAxis: useSecondaryYAxis[index] ? 1 : 0, // Assign to secondary y-axis based on useSecondaryYAxis state
+          data: series.data.map((y, idx) => ({ x: xAxisValues[idx], y })) // Pair x and y values
+        }))
+      };
+
+      Highcharts.chart(chartContainerRef.current, options);
+    }
+  }, [title, subtitle, yAxisTitle, secondaryYAxisTitle, xAxisValues, seriesData, smooth, showMarkers, verticalLines, useSecondaryYAxis, colors]);
+
+  return <div ref={chartContainerRef} />;
+};
+
+
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { Form } from 'react-bootstrap';
+
+// export const MorphableBubbleChart: FC = () => {
+//   const chartContainerRef = useRef<HTMLDivElement>(null);
+
+//   // Retool states for user-defined data and field mappings
+//   const [seriesData, setSeriesData] = Retool.useStateArray({ name: 'seriesData' });
+//   const [xField, setXField] = Retool.useStateString({ name: 'xField' });
+//   const [xAltField, setXAltField] = Retool.useStateString({ name: 'xAltField' });
+//   const [yField, setYField] = Retool.useStateString({ name: 'yField' });
+//   const [yAltField, setYAltField] = Retool.useStateString({ name: 'yAltField' });
+//   const [zField, setZField] = Retool.useStateString({ name: 'zField' });
+//   const [nameField, setNameField] = Retool.useStateString({ name: 'nameField' });
+//   const [xAxisType, setXAxisType] = Retool.useStateString({ name: 'xAxisType' });
+//   const [yAxisType, setYAxisType] = Retool.useStateString({ name: 'yAxisType' });
+
+//   useEffect(() => {
+//     if (chartContainerRef.current && seriesData && xField && yField) {
+//       // Transform series data based on user-defined fields
+//       const transformedData = seriesData.map((point: any) => ({
+//         x: point[xField],
+//         x_1: point[xAltField],
+//         y: point[yField],
+//         y_1: point[yAltField],
+//         z: zField ? point[zField] : undefined,
+//         name: nameField ? point[nameField] : undefined
+//       }));
+
+//       const originalData = transformedData.map(point => ({ ...point }));
+
+//       const options: Highcharts.Options = {
+//         chart: {
+//           type: 'bubble',
+//           plotBorderWidth: 1,
+//           zooming: {
+//             type: 'xy'
+//           },
+//           renderTo: chartContainerRef.current
+//         },
+//         title: {
+//           text: 'User-defined Bubble Chart with Alternate Coordinates'
+//         },
+//         xAxis: {
+//           gridLineWidth: 1,
+//           type: xAxisType as 'linear' | 'logarithmic',
+//           title: {
+//             text: `X-Axis (${xField})`
+//           }
+//         },
+//         yAxis: {
+//           type: yAxisType as 'linear' | 'logarithmic',
+//           title: {
+//             text: `Y-Axis (${yField})`
+//           }
+//         },
+//         tooltip: {
+//           useHTML: true,
+//           headerFormat: '<table>',
+//           pointFormat: '<tr><th colspan="2"><h3>{point.name}</h3></th></tr>' +
+//             `<tr><th>${xField}:</th><td>{point.x}</td></tr>` +
+//             `<tr><th>${yField}:</th><td>{point.y}</td></tr>` +
+//             (zField ? `<tr><th>${zField}:</th><td>{point.z}</td></tr>` : '') +
+//             '</table>',
+//           footerFormat: '</table>',
+//           followPointer: true
+//         },
+//         plotOptions: {
+//           series: {
+//             dataLabels: {
+//               enabled: true,
+//               format: '{point.name}'
+//             },
+//             animation: {
+//               duration: 2000,
+//               easing: 'easeOutBounce'
+//             }
+//           }
+//         },
+//         series: [{
+//           type: 'bubble',
+//           data: transformedData,
+//           colorByPoint: true
+//         }]
+//       };
+
+//       const chart = Highcharts.chart(chartContainerRef.current, options);
+
+//       // Handle dropdown selection to switch between x/y and x_1/y_1
+//       document.getElementById('coordinateSelect')?.addEventListener('change', function (event) {
+//         const selectedValue = (event.target as HTMLSelectElement).value;
+//         chart.series[0].data.forEach((point, index) => {
+//           const original = originalData[index];
+//           let targetX = selectedValue === 'original' ? original.x : original.x_1;
+//           let targetY = selectedValue === 'original' ? original.y : original.y_1;
+
+//           // Update the point with animation, ensuring that changes are recognized
+//           point.update({ x: targetX, y: targetY }, true, { duration: 1000 });
+//         });
+
+//         chart.redraw();
+//       });
+//     }
+//   }, [seriesData, xField, xAltField, yField, yAltField, zField, nameField, xAxisType, yAxisType]); // Re-run effect when any state changes
+
+//   return (
+//     <div>
+//       <div style={{ marginTop: '20px' }}>
+//         <Form.Group controlId="coordinateSelect">
+//           <Form.Label>Select coordinates:</Form.Label>
+//           <Form.Select>
+//             <option value="original">Original</option>
+//             <option value="alternate">Alternate</option>
+//           </Form.Select>
+//         </Form.Group>
+//       </div>
+//       <div ref={chartContainerRef}></div>
+//     </div>
+//   );
+// };
+
+export const MorphableBubbleChart: FC = () => {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  // Retool states for user-defined data and field mappings
+  const [seriesData, setSeriesData] = Retool.useStateArray({ name: 'seriesData' });
+  const [xField, setXField] = Retool.useStateString({ name: 'xField' });
+  const [xAltField, setXAltField] = Retool.useStateString({ name: 'xAltField' });
+  const [yField, setYField] = Retool.useStateString({ name: 'yField' });
+  const [yAltField, setYAltField] = Retool.useStateString({ name: 'yAltField' });
+  const [zField, setZField] = Retool.useStateString({ name: 'zField' });
+  const [nameField, setNameField] = Retool.useStateString({ name: 'nameField' });
+  const [groupField, setGroupField] = Retool.useStateArray({ name: 'groupField' });
+  const [xAxisType, setXAxisType] = Retool.useStateString({ name: 'xAxisType' });
+  const [yAxisType, setYAxisType] = Retool.useStateString({ name: 'yAxisType' });
+
+  useEffect(() => {
+    if (chartContainerRef.current && seriesData && xField && yField && groupField) {
+      // Group the data using the groupField array
+      const groupedData = seriesData.reduce((acc: Record<string, any[]>, point: any, index: number) => {
+        const group = groupField[index] || 'Ungrouped';
+        if (!acc[group]) {
+          acc[group] = [];
+        }
+        acc[group].push({
+          x: point[xField],
+          x_1: point[xAltField],
+          y: point[yField],
+          y_1: point[yAltField],
+          z: zField ? point[zField] : undefined,
+          name: nameField ? point[nameField] : undefined
+        });
+        return acc;
+      }, {});
+
+      const seriesOptions = Object.keys(groupedData).map(group => ({
+        name: group,
+        data: groupedData[group],
+        animation: {
+          duration: 2000,
+          easing: 'easeOutBounce'
+        }
+      }));
+
+      const originalData = seriesOptions.map(series => ({
+        ...series,
+        data: series.data.map(point => ({ ...point }))
+      }));
+
+      const options: Highcharts.Options = {
+        chart: {
+          type: 'bubble',
+          plotBorderWidth: 1,
+          zooming: {
+            type: 'xy'
+          },
+          renderTo: chartContainerRef.current
+        },
+        title: {
+          text: 'User-defined Bubble Chart with Alternate Coordinates'
+        },
+        xAxis: {
+          gridLineWidth: 1,
+          type: xAxisType as 'linear' | 'logarithmic',
+          title: {
+            text: `X-Axis (${xField})`
+          }
+        },
+        yAxis: {
+          type: yAxisType as 'linear' | 'logarithmic',
+          title: {
+            text: `Y-Axis (${yField})`
+          }
+        },
+        tooltip: {
+          useHTML: true,
+          headerFormat: '<table>',
+          pointFormat: `<tr><th colspan="2"><h3>{point.name}</h3></th></tr>
+                        <tr><th>${xField}:</th><td>{point.x}</td></tr>
+                        <tr><th>${yField}:</th><td>{point.y}</td></tr>` +
+                        (zField ? `<tr><th>${zField}:</th><td>{point.z}</td></tr>` : '') +
+                        '</table>',
+          footerFormat: '</table>',
+          followPointer: true
+        },
+        plotOptions: {
+          series: {
+            dataLabels: {
+              enabled: true,
+              format: '{point.name}'
+            }
+          }
+        },
+        series: seriesOptions,
+        credits: {
+          enabled: false
+        }
+      };
+
+      const chart = Highcharts.chart(chartContainerRef.current, options);
+
+      // Handle dropdown selection to switch between x/y and x_1/y_1
+      document.getElementById('coordinateSelect')?.addEventListener('change', function (event) {
+        const selectedValue = (event.target as HTMLSelectElement).value;
+        chart.series.forEach((series, seriesIndex) => {
+          series.data.forEach((point, pointIndex) => {
+            const original = originalData[seriesIndex].data[pointIndex];
+            let targetX = selectedValue === 'original' ? original.x : original.x_1;
+            let targetY = selectedValue === 'original' ? original.y : original.y_1;
+
+            // Update the point with animation
+            point.update({ x: targetX, y: targetY }, true, { duration: 1000 });
+          });
+        });
+
+        chart.redraw();
+      });
+    }
+  }, [seriesData, xField, xAltField, yField, yAltField, zField, nameField, groupField, xAxisType, yAxisType]);
+
+  return (
+    <div>
+      <div style={{ marginTop: '20px' }}>
+        <Form.Group controlId="coordinateSelect">
+          <Form.Label>Select coordinates:</Form.Label>
+          <Form.Select>
+            <option value="original">Original</option>
+            <option value="alternate">Alternate</option>
+          </Form.Select>
+        </Form.Group>
+      </div>
+      <div ref={chartContainerRef}></div>
+    </div>
+  );
 };
