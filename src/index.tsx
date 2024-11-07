@@ -254,7 +254,8 @@ export const BubbleChart: FC = () => {
               textOutline: 'none'
             }
           }
-        })),        legend: {
+        })),
+        legend: {
           enabled: showLegend
         },
         credits: {
@@ -1136,124 +1137,6 @@ export const LineChart: FC = () => {
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { Form } from 'react-bootstrap';
 
-// export const MorphableBubbleChart: FC = () => {
-//   const chartContainerRef = useRef<HTMLDivElement>(null);
-
-//   // Retool states for user-defined data and field mappings
-//   const [seriesData, setSeriesData] = Retool.useStateArray({ name: 'seriesData' });
-//   const [xField, setXField] = Retool.useStateString({ name: 'xField' });
-//   const [xAltField, setXAltField] = Retool.useStateString({ name: 'xAltField' });
-//   const [yField, setYField] = Retool.useStateString({ name: 'yField' });
-//   const [yAltField, setYAltField] = Retool.useStateString({ name: 'yAltField' });
-//   const [zField, setZField] = Retool.useStateString({ name: 'zField' });
-//   const [nameField, setNameField] = Retool.useStateString({ name: 'nameField' });
-//   const [xAxisType, setXAxisType] = Retool.useStateString({ name: 'xAxisType' });
-//   const [yAxisType, setYAxisType] = Retool.useStateString({ name: 'yAxisType' });
-
-//   useEffect(() => {
-//     if (chartContainerRef.current && seriesData && xField && yField) {
-//       // Transform series data based on user-defined fields
-//       const transformedData = seriesData.map((point: any) => ({
-//         x: point[xField],
-//         x_1: point[xAltField],
-//         y: point[yField],
-//         y_1: point[yAltField],
-//         z: zField ? point[zField] : undefined,
-//         name: nameField ? point[nameField] : undefined
-//       }));
-
-//       const originalData = transformedData.map(point => ({ ...point }));
-
-//       const options: Highcharts.Options = {
-//         chart: {
-//           type: 'bubble',
-//           plotBorderWidth: 1,
-//           zooming: {
-//             type: 'xy'
-//           },
-//           renderTo: chartContainerRef.current
-//         },
-//         title: {
-//           text: 'User-defined Bubble Chart with Alternate Coordinates'
-//         },
-//         xAxis: {
-//           gridLineWidth: 1,
-//           type: xAxisType as 'linear' | 'logarithmic',
-//           title: {
-//             text: `X-Axis (${xField})`
-//           }
-//         },
-//         yAxis: {
-//           type: yAxisType as 'linear' | 'logarithmic',
-//           title: {
-//             text: `Y-Axis (${yField})`
-//           }
-//         },
-//         tooltip: {
-//           useHTML: true,
-//           headerFormat: '<table>',
-//           pointFormat: '<tr><th colspan="2"><h3>{point.name}</h3></th></tr>' +
-//             `<tr><th>${xField}:</th><td>{point.x}</td></tr>` +
-//             `<tr><th>${yField}:</th><td>{point.y}</td></tr>` +
-//             (zField ? `<tr><th>${zField}:</th><td>{point.z}</td></tr>` : '') +
-//             '</table>',
-//           footerFormat: '</table>',
-//           followPointer: true
-//         },
-//         plotOptions: {
-//           series: {
-//             dataLabels: {
-//               enabled: true,
-//               format: '{point.name}'
-//             },
-//             animation: {
-//               duration: 2000,
-//               easing: 'easeOutBounce'
-//             }
-//           }
-//         },
-//         series: [{
-//           type: 'bubble',
-//           data: transformedData,
-//           colorByPoint: true
-//         }]
-//       };
-
-//       const chart = Highcharts.chart(chartContainerRef.current, options);
-
-//       // Handle dropdown selection to switch between x/y and x_1/y_1
-//       document.getElementById('coordinateSelect')?.addEventListener('change', function (event) {
-//         const selectedValue = (event.target as HTMLSelectElement).value;
-//         chart.series[0].data.forEach((point, index) => {
-//           const original = originalData[index];
-//           let targetX = selectedValue === 'original' ? original.x : original.x_1;
-//           let targetY = selectedValue === 'original' ? original.y : original.y_1;
-
-//           // Update the point with animation, ensuring that changes are recognized
-//           point.update({ x: targetX, y: targetY }, true, { duration: 1000 });
-//         });
-
-//         chart.redraw();
-//       });
-//     }
-//   }, [seriesData, xField, xAltField, yField, yAltField, zField, nameField, xAxisType, yAxisType]); // Re-run effect when any state changes
-
-//   return (
-//     <div>
-//       <div style={{ marginTop: '20px' }}>
-//         <Form.Group controlId="coordinateSelect">
-//           <Form.Label>Select coordinates:</Form.Label>
-//           <Form.Select>
-//             <option value="original">Original</option>
-//             <option value="alternate">Alternate</option>
-//           </Form.Select>
-//         </Form.Group>
-//       </div>
-//       <div ref={chartContainerRef}></div>
-//     </div>
-//   );
-// };
-
 export const MorphableBubbleChart: FC = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
@@ -1268,6 +1151,8 @@ export const MorphableBubbleChart: FC = () => {
   const [groupField, setGroupField] = Retool.useStateArray({ name: 'groupField' });
   const [xAxisType, setXAxisType] = Retool.useStateString({ name: 'xAxisType' });
   const [yAxisType, setYAxisType] = Retool.useStateString({ name: 'yAxisType' });
+  const [showLegend, setShowLegend] = Retool.useStateBoolean({ name: 'showLegend' });
+  const [dropdownOptions, setDropdownOptions] = Retool.useStateArray({ name: 'dropdownOptions' });
 
   useEffect(() => {
     if (chartContainerRef.current && seriesData && xField && yField && groupField) {
@@ -1294,6 +1179,16 @@ export const MorphableBubbleChart: FC = () => {
         animation: {
           duration: 2000,
           easing: 'easeOutBounce'
+        },
+        dataLabels: {
+          enabled: true,
+          formatter: function () {
+            return this.point.name;
+          },
+          style: {
+            color: '#000000', // Adjust label color if needed
+            textOutline: 'none'
+          }
         }
       }));
 
@@ -1326,6 +1221,9 @@ export const MorphableBubbleChart: FC = () => {
           title: {
             text: `Y-Axis (${yField})`
           }
+        },
+        legend: {
+          enabled: showLegend
         },
         tooltip: {
           useHTML: true,
@@ -1371,19 +1269,18 @@ export const MorphableBubbleChart: FC = () => {
         chart.redraw();
       });
     }
-  }, [seriesData, xField, xAltField, yField, yAltField, zField, nameField, groupField, xAxisType, yAxisType]);
+  }, [seriesData, xField, xAltField, yField, yAltField, zField, nameField, groupField, xAxisType, yAxisType, showLegend]);
 
   return (
     <div>
-      <div style={{ marginTop: '20px' }}>
-        <Form.Group controlId="coordinateSelect">
-          <Form.Label>Select coordinates:</Form.Label>
-          <Form.Select>
-            <option value="original">Original</option>
-            <option value="alternate">Alternate</option>
-          </Form.Select>
-        </Form.Group>
-      </div>
+      <Form.Group controlId="coordinateSelect">
+        <Form.Label>Categories:</Form.Label>
+        <Form.Select>
+          {dropdownOptions.map((option, index) => (
+            <option key={index} value={option.value}>{option.label}</option>
+          ))}
+        </Form.Select>
+      </Form.Group>
       <div ref={chartContainerRef}></div>
     </div>
   );
