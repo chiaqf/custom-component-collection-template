@@ -207,6 +207,9 @@ export const BubbleChart: FC = () => {
           type: 'bubble',
           reflow: true,
           backgroundColor: 'transparent',
+          zooming: {
+            type: 'xy'
+          },
           width: width,
           height: height
         },
@@ -704,7 +707,7 @@ export const AreaChart: FC = () => {
           },
         },
         tooltip: {
-          pointFormat: '{series.name} had <b>{point.y:,.0f}</b><br/>at {point.x}'
+          pointFormat: '{series.name}: <b>{point.y:,.0f}</b><br/>at {point.x}'
         },
         plotOptions: {
           areaspline: {
@@ -1150,6 +1153,7 @@ export const LineChart: FC = () => {
   // Retool states for user-defined inputs
   const [title, setTitle] = Retool.useStateString({ name: 'title' });
   const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
+  const [xAxisTitle, setXAxisTitle] = Retool.useStateString({ name: 'xAxisTitle' });
   const [yAxisTitle, setYAxisTitle] = Retool.useStateString({ name: 'yAxisTitle' });
   const [secondaryYAxisTitle, setSecondaryYAxisTitle] = Retool.useStateString({ name: 'secondaryYAxisTitle' });
   const [xAxisValues, setXAxisValues] = Retool.useStateArray({ name: 'xAxisValues' });
@@ -1175,7 +1179,7 @@ export const LineChart: FC = () => {
         xAxis: {
           type: 'linear', // Use linear scale for numeric x-axis values
           title: {
-            text: 'X-Axis'
+            text: xAxisTitle || 'X-Axis'
           },
           accessibility: {
             rangeDescription: `Range: ${Math.min(...xAxisValues)} to ${Math.max(...xAxisValues)}.`
@@ -1341,15 +1345,12 @@ export const MorphableBubbleChart: FC = () => {
           enabled: showLegend
         },
         tooltip: {
-          useHTML: true,
-          headerFormat: '<table>',
-          pointFormat: `<tr><th colspan="2"><h3>{point.name}</h3></th></tr>
-                        <tr><th>${xField}:</th><td>{point.x}</td></tr>
-                        <tr><th>${yField}:</th><td>{point.y}</td></tr>` +
-                        (zField ? `<tr><th>${zField}:</th><td>{point.z}</td></tr>` : '') +
-                        '</table>',
-          footerFormat: '</table>',
-          followPointer: true
+          headerFormat: '',
+          pointFormat: '<span style="color:{point.color}">\u25cf</span> ' +
+            '{point.name}<br/>' +
+            `${xAxisTitle}: {point.x}<br/>` +
+            `${yAxisTitle}: {point.y}<br/>` +
+            `${zField ? zField : ''}: {point.z}<br/>` 
         },
         plotOptions: {
           series: {
