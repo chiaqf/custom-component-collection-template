@@ -1,5 +1,5 @@
 import React from 'react'
-import { type FC, useEffect, useRef } from 'react'
+import { type FC, useEffect, useRef, useState } from 'react'
 import Highcharts from 'highcharts'
 import HighchartsMore from 'highcharts/highcharts-more'
 import AnnotationsModule from 'highcharts/modules/annotations';
@@ -84,6 +84,7 @@ export const PieChart: FC = () => {
           data: data,
           dataLabels: [{
             enabled: true,
+            format: '{point.name} : {point.percentage:.1f}%',
             distance: 20,
           }]
         }
@@ -1674,4 +1675,5 @@ export const FundInsightsPro: React.FC = () => {
         </div>
     );
 };
+
 
