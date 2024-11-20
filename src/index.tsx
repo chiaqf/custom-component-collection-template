@@ -508,17 +508,6 @@ export const PackedBubbleChart: FC = () => {
           width: width,
           height: height,
         },
-        plotOptions :{
-          packedbubble: {
-            layoutAlgorithm: {
-              gravitationalConstant: 0.1,
-              splitSeries: true,
-              seriesInteraction: false,
-              dragBetweenSeries: true,
-              parentNodeLimit: true
-            },
-          }
-        },
         title: {
           text: title
         },
