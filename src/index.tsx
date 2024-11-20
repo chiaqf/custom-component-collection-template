@@ -176,7 +176,7 @@ export const BubbleChart: FC = () => {
         
         seriesData = uniqueGroups.map((group, groupIndex) => ({
           name: group,
-          data: labels.map((label, index) => {
+          data: (labels || []).map((label, index) => {
             if (groups[index] === group) {
               return {
                 name: label,
@@ -192,7 +192,7 @@ export const BubbleChart: FC = () => {
       } else {
         // No groups - create single series
         seriesData = [{
-          data: labels.map((label, index) => ({
+          data: (labels || []).map((label, index) => ({
             name: label,
             x: xValues[index],
             y: yValues[index],
@@ -331,10 +331,6 @@ export const BarChart: FC = () => {
     name: 'reverseYAxis'
   })
 
-  const [dataSorting, setDataSorting] = Retool.useStateBoolean({
-    name: 'dataSorting'
-  })
-
   useEffect(() => {
     if (chartContainerRef.current) {
       // Handle multiple series if data is nested array, otherwise single series
@@ -386,17 +382,11 @@ export const BarChart: FC = () => {
             dataLabels: {
               enabled: true
             },
-            dataSorting: {
-              enabled: dataSorting
-            }
           },
           column: {
             dataLabels: {
               enabled: true
             },
-            dataSorting: {
-              enabled: dataSorting
-            }
           }
         },
         series: seriesData,
@@ -407,7 +397,7 @@ export const BarChart: FC = () => {
       
       Highcharts.chart(chartContainerRef.current, options)
     }
-  }, [data, categories, colors, title, subtitle, showLegend, width, height, dataSorting]);
+  }, [data, categories, colors, title, subtitle, showLegend, width, height]);
 
   return <div ref={chartContainerRef} />
 }
@@ -516,7 +506,18 @@ export const PackedBubbleChart: FC = () => {
           reflow: true,
           backgroundColor: 'transparent',
           width: width,
-          height: height
+          height: height,
+        },
+        plotOptions :{
+          packedbubble: {
+            layoutAlgorithm: {
+              gravitationalConstant: 0.1,
+              splitSeries: true,
+              seriesInteraction: false,
+              dragBetweenSeries: true,
+              parentNodeLimit: true
+            },
+          }
         },
         title: {
           text: title
@@ -669,7 +670,10 @@ export const AreaChart: FC = () => {
     if (chartContainerRef.current && seriesData) {
       const options: Highcharts.Options = {
         chart: {
-          type: smooth ? 'areaspline' : 'area'
+          type: smooth ? 'areaspline' : 'area',
+          zooming: {
+            type: 'xy'
+          }
         },
         accessibility: {
           description: 'An area chart comparing different data series over time.'
@@ -688,7 +692,7 @@ export const AreaChart: FC = () => {
           accessibility: {
             rangeDescription: `Range: ${Math.min(...xAxisValues)} to ${Math.max(...xAxisValues)}.`
           },
-          plotLines: verticalLines.map((line) => ({
+          plotLines: (verticalLines || []).map((line) => ({
             color: 'red', // Customize line color
             width: 2, // Line width
             value: line.x, // Position line at specified X value
@@ -1199,7 +1203,7 @@ export const LineChart: FC = () => {
           }
         ],
         tooltip: {
-          pointFormat: '{series.name} had <b>{point.y:,.0f}</b><br/>at {point.x}'
+          pointFormat: '{series.name} had <b>{point.y}</b><br/>at {point.x}'
         },
         credits: {
           enabled: false
@@ -1254,7 +1258,7 @@ export const MorphableBubbleChart: FC = () => {
   const [xAxisType, setXAxisType] = Retool.useStateString({ name: 'xAxisType' });
   const [yAxisType, setYAxisType] = Retool.useStateString({ name: 'yAxisType' });
   const [showLegend, setShowLegend] = Retool.useStateBoolean({ name: 'showLegend' });
-  const [dropdownOptions, setDropdownOptions] = Retool.useStateArray({ name: 'dropdownOptions' });
+  const [toggleOptions, setToggleOptions] = Retool.useStateArray({ name: 'toggleOptions' });
   const [colors, setColors] = Retool.useStateArray({ name: 'colors' });
 
   const [title, setTitle] = Retool.useStateString({ name: 'title' });
@@ -1369,21 +1373,34 @@ export const MorphableBubbleChart: FC = () => {
       const chart = Highcharts.chart(chartContainerRef.current, options);
 
       // Handle dropdown selection to switch between x/y and x_1/y_1
-      document.getElementById('coordinateSelect')?.addEventListener('change', function (event) {
-        const selectedValue = (event.target as HTMLSelectElement).value;
-        chart.series.forEach((series, seriesIndex) => {
-          series.data.forEach((point, pointIndex) => {
-            const original = originalData[seriesIndex].data[pointIndex];
-            let targetX = selectedValue === 'original' ? original.x : original.x_1;
-            let targetY = selectedValue === 'original' ? original.y : original.y_1;
-
-            // Update the point with animation
-            point.update({ x: targetX, y: targetY }, true, { duration: 1000 });
+      const toggleSwitch = document.getElementById('coordinateToggle');
+      toggleSwitch?.addEventListener('change', function () {
+        setTimeout(() => {
+          const isChecked = (toggleSwitch as HTMLInputElement).checked;
+      
+          chart.series.forEach((series, seriesIndex) => {
+            series.data.forEach((point, pointIndex) => {
+              const original = originalData[seriesIndex].data[pointIndex];
+      
+              point.update(
+                {
+                  x: isChecked ? original.x_1 : original.x,
+                  y: isChecked ? original.y_1 : original.y,
+                },
+                false, // Do not redraw immediately for each point
+                true // Enable animation for each point
+              );
+            });
           });
-        });
-
-        chart.redraw();
+      
+          // Redraw the chart after all points are updated
+          chart.redraw();
+        }, 150);
       });
+      
+      
+      
+      
     }
   }, [seriesData, xField, xAltField, yField, yAltField, zField, 
     nameField, groupField, xAxisType, yAxisType, showLegend, 
@@ -1391,290 +1408,180 @@ export const MorphableBubbleChart: FC = () => {
 
   return (
     <div>
-      <Form.Group controlId="coordinateSelect">
-        <Form.Label>Categories : </Form.Label>
-        <Form.Select style={{ display: 'inline-block', width: 'auto' , marginLeft: '10px'}}>
-            {dropdownOptions.map((option, index) => (
-            <option key={index} value={option.value}>{option.label}</option>
-          ))}
-        </Form.Select>
-      </Form.Group>
+      <div className="d-flex align-items-center mb-3" style={{ margin: '10px' }}>
+        <span className="me-3 text-muted small">{toggleOptions[0]}</span>
+        <div className="form-check form-switch">
+          <input
+            id="coordinateToggle"
+            className="form-check-input"
+            type="checkbox"
+          />
+        </div>
+        <span className="ms-3 text-muted small">{toggleOptions[1]}</span>
+      </div>
       <div ref={chartContainerRef}></div>
     </div>
   );
 };
 
+export const SLineChart: FC = () => {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
 
-export const FundInsightsPro: React.FC = () => {
-    const chartContainerRef = useRef<HTMLDivElement>(null);
-    const [groupBy, setGroupBy] = Retool.useStateString({ name: 'groupBy', defaultValue: 'type' });
-    const [data, setData] = Retool.useStateArray({ name: 'data' });
-    const [height, setHeight] = Retool.useStateNumber({ name: 'height' });
-    const [width, setWidth] = Retool.useStateNumber({ name: 'width' });
-    
-    // find largest .value
-    const minValue = Math.min(...data.map(item => item.value));
-    const maxValue = Math.max(...data.map(item => item.value));
+  // Retool states for user-defined inputs
+  const [title, setTitle] = Retool.useStateString({ name: 'title' });
+  const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
+  const [xAxisTitle, setXAxisTitle] = Retool.useStateString({ name: 'xAxisTitle' });
+  const [yAxisTitle, setYAxisTitle] = Retool.useStateString({ name: 'yAxisTitle' });
+  const [seriesData, setSeriesData] = Retool.useStateArray({ name: 'seriesData' }); // Array of series objects
+  const [smooth, setSmooth] = Retool.useStateBoolean({ name: 'smooth' });
+  const [showMarkers, setShowMarkers] = Retool.useStateBoolean({ name: 'showMarkers' });
+  const [verticalLines, setVerticalLines] = Retool.useStateArray({ name: 'verticalLines' });
+  const [colors, setColors] = Retool.useStateArray({ name: 'colors' });
+  const [width, setWidth] = Retool.useStateNumber({ name: 'width' });
+  const [height, setHeight] = Retool.useStateNumber({ name: 'height' });
 
-    // const data = [
-    //     {
-    //         name: 'Equity Fund 1',
-    //         value: 673.6,
-    //         type: 'equity',
-    //         liquidity: 'Highly Liquid',
-    //         value_at_risk: "0-1%",
-    //         volatility: "1-10%",
-    //         holdings: [
-    //             { name: 'Takaful Berhad', value: 700 },
-    //             { name: 'Genting Malaysia Berhad', value: 683.7 },
-    //             { name: 'Capital A Berhad', value: 650 },
-    //             { name: 'Tenaga Nasional Berhad', value: 390 },
-    //             { name: 'Gamuda Berhad', value: 350 }
-    //         ]
-    //     },
-    //     {
-    //         name: 'Equity Fund 2',
-    //         value: 315.5,
-    //         type: 'equity',
-    //         liquidity: 'Highly Liquid',
-    //         value_at_risk: "0-1%",
-    //         volatility: "1-10%",
-    //         holdings: [
-    //             { name: 'CIMB Berhad', value: 800 },
-    //             { name: 'ABMB Berhad', value: 693.7 },
-    //             { name: 'Petro Dagang Berhad', value: 550 },
-    //             { name: 'Layhong Berhad', value: 290 },
-    //             { name: 'Greatech Berhad', value: 250 }
-    //         ]
-    //     },
-    //     {
-    //         name: 'Equity Fund 3',
-    //         value: 12667.4,
-    //         type: 'equity',
-    //         liquidity: 'Liquid',
-    //         value_at_risk: "1-3%",
-    //         volatility: "10-20%",
-    //         holdings: [
-    //             { name: 'LPI Berhad', value: 900 },
-    //             { name: 'AEON Credit Berhad', value: 793.7 },
-    //             { name: 'RCE Capital Berhad', value: 500 },
-    //             { name: 'Bermaz Auto Berhad', value: 390 },
-    //             { name: 'Hong Leong Capital Berhad', value: 250 }
-    //         ]
-    //     },
-    //     {
-    //         name: 'Bond Fund 1',
-    //         value: 2315.5,
-    //         type: 'bond',
-    //         liquidity: 'Moderately Liquid',
-    //         value_at_risk: "1-3%",
-    //         volatility: "10-20%",
-    //         holdings: [
-    //             { name: 'CIMB 3.8% 2030', value: 600 },
-    //             { name: 'LPI Berhad 5% 2024', value: 323.7 },
-    //             { name: 'Public Bank 3.6% 2027', value: 200 },
-    //             { name: 'CAGAMAS 4.5% 2030', value: 180 },
-    //             { name: 'MGS 2% 2050', value: 170 }
-    //         ]
-    //     },
-    //     {
-    //         name: 'Bond Fund 2',
-    //         value: 1267.6,
-    //         type: 'bond',
-    //         liquidity: 'Liquid',
-    //         value_at_risk: ">3%",
-    //         volatility: ">20%",
-    //         holdings: [
-    //             { name: 'Maybank 3.8% 2030', value: 800 },
-    //             { name: 'CAGAMAS 5% 2024', value: 563.7 },
-    //             { name: 'Public Bank 3.6% 2027', value: 420 },
-    //             { name: 'CAGAMAS 4.5% 2030', value: 220 },
-    //             { name: 'Khazanah 2% 2050', value: 120 }
-    //         ]
-    //     },
-    //     {
-    //         name: 'Strategic Balanced Fund',
-    //         value: 893.7,
-    //         type: 'real estate',
-    //         liquidity: 'Illiquid',
-    //         value_at_risk: ">3%",
-    //         volatility: ">20%",
-    //         holdings: [
-    //             { name: 'Maybank Berhad', value: 500 },
-    //             { name: 'CAGAMAS 5% 2024', value: 393.7 },
-    //             { name: 'Public Bank Berhad', value: 200 },
-    //             { name: 'CAGAMAS 4.5% 2030', value: 190 },
-    //             { name: 'Mr DIY Berhad', value: 150 }
-    //         ]
-    //     }
-    // ];
-
-    const riskColorMap = {
-        '0-1%': '#2ca02c',
-        '1-3%': '#ff7f0e',
-        '>3%': '#d62728'
-    };
-
-    const volatilityColorMap = {
-        '1-10%': '#2ca02c',
-        '10-20%': '#ff7f0e',
-        '>20%': '#d62728'
-    };
-
-    // Helper function to get color by metric
-    function getColorByMetric(value, metricMap) {
-        return metricMap[value] || '#1f77b4'; // Default to blue
-    }
-
-    // Helper function to get the aggregated color based on risk and volatility
-    function getAggregatedColor(fundsOrHoldings, riskMap, volatilityMap) {
-        let worstRisk = '0-1%';
-        let worstVolatility = '1-10%';
-
-        fundsOrHoldings.forEach(item => {
-            if (item.value_at_risk === '>3%') worstRisk = '>3%';
-            else if (item.value_at_risk === '1-3%' && worstRisk !== '>3%') worstRisk = '1-3%';
-
-            if (item.volatility === '>20%') worstVolatility = '>20%';
-            else if (item.volatility === '10-20%' && worstVolatility !== '>20%') worstVolatility = '10-20%';
-        });
-
-        return riskMap[worstRisk] || '#1f77b4'; // Default back to blue
-    }
-
-    // Helper function to group data by a specific property
-    function getGroupedData(groupBy) {
-      if (groupBy === 'holdings') {
-          // Sort data by `fund.value` in descending order and take the top 10 funds
-          const topFunds = data
-              .sort((a, b) => b.value - a.value)
-              .slice(0, 10);
-  
-          // Get the names of the top 10 funds
-          const topFundNames = new Set(topFunds.map(fund => fund.name));
-  
-          return data.map(fund => ({
-              name: fund.name,
-              data: topFundNames.has(fund.name)
-                  ? fund.holdings.map(holding => ({
-                      name: holding.asset_name,
-                      value: holding.value
-                  }))
-                  : [] // No children for funds outside the top 10
-          }));
-      }
-  
-      const grouped = new Map();
-  
-      data.forEach(fund => {
-          const groupValue = fund[groupBy];
-          if (!grouped.has(groupValue)) {
-              grouped.set(groupValue, []);
+  useEffect(() => {
+    if (chartContainerRef.current && seriesData) {
+      const options: Highcharts.Options = {
+        chart: {
+          type: 'line',
+          width: width,
+          height: height,
+          zooming: {
+            type: 'xy'
           }
-          grouped.get(groupValue).push(fund);
-      });
-  
-      return Array.from(grouped, ([groupName, funds]) => ({
-          name: groupName,
-          color: (groupBy === 'value_at_risk' || groupBy === 'volatility')
-              ? getAggregatedColor(funds, riskColorMap, volatilityColorMap)
-              : undefined,
-          data: funds.map(fund => ({
-              name: fund.name,
-              value: fund.value
-          }))
-      }));
-  }
-  
-    useEffect(() => {
-        if (chartContainerRef.current) {
-            const zMaxValue = groupBy === 'holdings'
-            ? Math.max(...data.flatMap(fund => fund.holdings.map(holding => holding.value)))
-            : maxValue;
+        },
+        title: {
+          text: title || " "
+        },
+        subtitle: {
+          text: subtitle || " "
+        },
+        xAxis: {
+          type: 'linear', // Use linear scale for numeric x-axis values
+          title: {
+            text: xAxisTitle || 'X-Axis'
+          }
+        },
+        yAxis: {
+          title: {
+            text: yAxisTitle || 'Y-Axis'
+          },
+        },
+        tooltip: {
+          pointFormat: `{series.name}: ${xAxisTitle}: {point.x}, ${yAxisTitle}: {point.y:,.0f}`
+        },
+        credits: {
+          enabled: false
+        },
+        plotOptions: {
+          line: {
+            marker: {
+              enabled: showMarkers,
+              symbol: 'circle',
+              radius: 3,
+              states: {
+                hover: {
+                  enabled: true
+                }
+              }
+            },
+            lineWidth: smooth ? 2 : 1
+          }
+        },
+        series: seriesData.map((series, index) => ({
+          ...series,
+          type: 'line',
+          color: colors[index],
+          data: series.data // Pair x and y values
+        }))
+      };
 
-            const zMinValue = groupBy === 'holdings'
-            ? Math.min(...data.flatMap(fund => fund.holdings.map(holding => holding.value)))
-            : minValue;
+      Highcharts.chart(chartContainerRef.current, options);
+    }
+  }, [title, subtitle, yAxisTitle, seriesData, smooth, showMarkers, verticalLines, colors]);
 
-            const averageValue = (zMaxValue + zMinValue) / 2;
-
-            const chart = Highcharts.chart(chartContainerRef.current, {
-                chart: {
-                    type: 'packedbubble',
-                    height: height || '100%',
-                    width: width || '100%',
-                    boostThreshold: 50, // Set threshold for using boost (adjust as needed)
-                },
-                title: {
-                    text: 'Fund Insights Pro'
-                },
-                subtitle: {
-                    text: 'Source: Trust me bro'
-                },
-                tooltip: {
-                    useHTML: true,
-                    pointFormat: '<b>{point.name}:</b> {point.value} value'
-                },
-                plotOptions: {
-                    packedbubble: {
-                        animation: {
-                          duration: 500 // Reduce duration to 500ms or set to false to disable
-                        },
-                        minSize: '1%',
-                        maxSize: '55%',
-                        zMin: zMinValue,
-                        zMax: zMaxValue,
-                        layoutAlgorithm: {
-                            initialPositions: 'random', // Spread bubbles more evenly initially
-                            gravitationalConstant: 0.01,
-                            splitSeries: true,
-                            seriesInteraction: false,
-                            dragBetweenSeries: false,
-                            parentNodeLimit: true
-                        },
-                        dataLabels: {
-                            enabled: true,
-                            formatter: function() {
-                                // Only display label if the point's value is above the average
-                                if (this.point.value > averageValue) {
-                                    return this.point.name;
-                                }
-                                return null; // Do not show label if value is below or equal to average
-                            },
-                            style: {
-                                color: 'black',
-                                textOutline: 'none',
-                                fontWeight: 'normal'
-                            }
-                        }
-                    }
-                },
-                series: getGroupedData(groupBy)
-            });
-
-            return () => {
-                chart.destroy();
-            };
-        }
-    }, [groupBy]);
-
-    const handleGroupChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        setGroupBy(event.target.value);
-    };
-
-    return (
-        <div>
-            <label htmlFor="groupingSelect">Group by:</label>
-            <select id="groupingSelect" onChange={handleGroupChange}>
-                <option value="type">Type</option>
-                <option value="liquidity">Liquidity</option>
-                <option value="value_at_risk">Value at Risk</option>
-                <option value="volatility">Volatility</option>
-                <option value="holdings">Holdings (Top 7 Biggest Funds)</option>
-            </select>
-            <div ref={chartContainerRef} style={{ height: '100%', width: '100%' }}></div>
-        </div>
-    );
+  return <div ref={chartContainerRef} />;
 };
 
+import HighchartsStock from "highcharts/modules/stock";
 
+HighchartsStock(Highcharts);
+export const StockChartComponent: FC = () => {
+  const [chartData, setChartData] = Retool.useStateArray({ name: "chartData" });
+  const [colorData, setColorData] = Retool.useStateArray({
+    name: "colorData", // This will store the color for each stock symbol
+  });
+
+  // Ref to reference the chart container
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  // Function to create the Highcharts stock chart
+  const createChart = (series: any) => {
+    if (chartContainerRef.current) {
+      Highcharts.stockChart(chartContainerRef.current, {
+        rangeSelector: {
+          selected: 4,
+        },
+        yAxis: {
+          labels: {
+            format: '{#if (gt value 0)}+{/if}{value}%',
+          },
+          plotLines: [
+            {
+              value: 0,
+              width: 2,
+              color: 'silver',
+            },
+          ],
+        },
+        plotOptions: {
+          series: {
+            compare: 'percent',
+            showInNavigator: true,
+          },
+        },
+        tooltip: {
+          pointFormat: '<span style="color:{series.color}">' +
+            '{series.name}</span>: <b>{point.y}</b> ' +
+            '({point.change}%)<br/>',
+          valueDecimals: 2,
+          split: true,
+        },
+        series,
+        credits: {
+          enabled: false,
+        },
+        legend: {
+          enabled: true,
+        },
+      });
+    }
+  };
+
+  // Combine chart data with color data and create the chart
+  const prepareSeries = () => {
+    // Merge the chartData with the colors (if available) for each stock symbol
+    return chartData.map((stock: any, index: number) => {
+      return {
+        ...stock,
+        color: colorData[index] || "#7cb5ec", // Default to a light blue if no color is set
+      };
+    });
+  };
+
+  // Create the chart when chartData or colorData changes
+  useEffect(() => {
+    if (chartData.length > 0) {
+      const series = prepareSeries(); // Prepare the series data with colors
+      createChart(series); // Create the chart with the prepared data
+    }
+  }, [chartData, colorData]); // Re-run this effect when chartData or colorData changes
+
+  return (
+    <div>
+      {/* Render the Highcharts chart inside this div */}
+      <div ref={chartContainerRef} style={{ width: '100%', height: '400px' }} />
+    </div>
+  );
+};
