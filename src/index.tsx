@@ -508,6 +508,13 @@ export const PackedBubbleChart: FC = () => {
           width: width,
           height: height,
         },
+        plotOptions: {
+          packedbubble: {
+            layoutAlgorithm: {
+              gravitationalConstant: 0.03,
+            }
+          }
+        },
         title: {
           text: title
         },
@@ -924,11 +931,11 @@ export const HeatmapChart: FC = () => {
 
   useEffect(() => {
     if (chartContainerRef.current) {
+      const stops = colorRange.map((color, index) => [index / (colorRange.length - 1), color]);
+
       const options: Highcharts.Options = {
         chart: {
           type: 'heatmap',
-          // marginTop: 40,
-          // marginBottom: 80,
           plotBorderWidth: 0,
           backgroundColor: 'transparent',
           width: width,
@@ -962,8 +969,7 @@ export const HeatmapChart: FC = () => {
         colorAxis: {
           min: valueRange[0],
           max: valueRange[1],
-          minColor: colorRange[0],
-          maxColor: colorRange[1]
+          stops: stops
         },
         legend: {
           align: 'right',
