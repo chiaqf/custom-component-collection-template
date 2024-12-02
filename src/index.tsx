@@ -1260,6 +1260,9 @@ export const MorphableBubbleChart: FC = () => {
   const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
   const [xAxisTitle, setXAxisTitle] = Retool.useStateString({ name: 'xAxisTitle' });
   const [yAxisTitle, setYAxisTitle] = Retool.useStateString({ name: 'yAxisTitle' });
+  
+  const [width, setWidth] = Retool.useStateNumber({ name: 'width' });
+  const [height, setHeight] = Retool.useStateNumber({ name: 'height' });
 
   useEffect(() => {
     if (chartContainerRef.current && seriesData && xField && yField && groupField) {
@@ -1315,6 +1318,8 @@ export const MorphableBubbleChart: FC = () => {
       const options: Highcharts.Options = {
         chart: {
           type: 'bubble',
+          width: width,
+          height: height,
           plotBorderWidth: 1,
           zooming: {
             type: 'xy'
@@ -1399,24 +1404,30 @@ export const MorphableBubbleChart: FC = () => {
     }
   }, [seriesData, xField, xAltField, yField, yAltField, zField, 
     nameField, groupField, xAxisType, yAxisType, showLegend, 
-    title, subtitle, xAxisTitle, yAxisTitle]);
+    title, subtitle, xAxisTitle, yAxisTitle, width, height]);
 
-  return (
-    <div>
-      <div className="d-flex align-items-center mb-3" style={{ margin: '10px' }}>
-        <span className="me-3 text-muted small">{toggleOptions[0]}</span>
-        <div className="form-check form-switch">
-          <input
-            id="coordinateToggle"
-            className="form-check-input"
-            type="checkbox"
-          />
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+        <div className="d-flex align-items-center mb-3" style={{ padding: '10px' }}>
+          <span className="me-3 text-muted small">{toggleOptions[0]}</span>
+          <div className="form-check form-switch">
+            <input
+              id="coordinateToggle"
+              className="form-check-input"
+              type="checkbox"
+            />
+          </div>
+          <span className="ms-3 text-muted small">{toggleOptions[1]}</span>
         </div>
-        <span className="ms-3 text-muted small">{toggleOptions[1]}</span>
+        <div
+          ref={chartContainerRef}
+          style={{
+            flex: 1, // Makes the chart take up the remaining space
+            overflow: 'hidden', // Prevents scrollbars
+          }}
+        ></div>
       </div>
-      <div ref={chartContainerRef}></div>
-    </div>
-  );
+    );
 };
 
 export const SLineChart: FC = () => {
