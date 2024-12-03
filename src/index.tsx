@@ -765,19 +765,43 @@ export const DataOnlyTreemapChart: FC = () => {
   useEffect(() => {
     if (chartContainerRef.current && data.length > 0 && colors.length > 0) {
 
-      let colorIndex = 0;
+      // Utility function to generate lighter or darker shades
+      const generateShade = (color, factor) => {
+        // Convert hex color to RGB
+        const [r, g, b] = color.match(/\w\w/g).map((hex) => parseInt(hex, 16));
+      
+        // Darken the color by scaling each channel towards 0
+        const adjust = (value) => Math.round(value * (1 + factor)); // Factor < 0 makes it darker
+      
+        // Clamp and convert back to hex
+        const newR = Math.min(255, Math.max(0, adjust(r)));
+        const newG = Math.min(255, Math.max(0, adjust(g)));
+        const newB = Math.min(255, Math.max(0, adjust(b)));
+      
+        return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+      };
 
+      const parentColorMap = new Map(); // Map to store parent color assignments
+
+      // Assign colors and generate shades
       const coloredData = data.map((point) => {
-        // Check if the node is at level 2 by verifying that its parent is '0.0'
         if (point.parent === '0.0') {
-          const coloredPoint = {
+          // Level 1: Assign a base color
+          const color = colors[parseInt(point.id, 10) % colors.length];
+          parentColorMap.set(point.id, color); // Save color for children
+          return {
             ...point,
-            color: colors[colorIndex % colors.length] // Assign color and cycle through colors if needed
+            color: color,
           };
-          colorIndex++; // Increment the color index for each level 2 node
-          return coloredPoint;
+        } else if (point.parent === '1.0' || point.parent === '2.0') {
+          // Level 2: Assign a shade of the parent's color
+          const parentColor = parentColorMap.get(point.parent) || '#cccccc';
+          return {
+            ...point,
+            color: generateShade(parentColor, Math.random() * -0.5), // Use darker shades
+          };
         }
-        return point; // Return other nodes as-is
+        return point; // Return as-is for other nodes
       });
 
       const options: Highcharts.Options = {
@@ -814,6 +838,7 @@ export const DataOnlyTreemapChart: FC = () => {
           },
           levels: [{
             level: 1,
+            colorByPoint: true,
             dataLabels: {
               enabled: true,
               formatter: function() {
@@ -833,21 +858,12 @@ export const DataOnlyTreemapChart: FC = () => {
               }
             }
           }],
-          // dataLabels: {
-          //   enabled: true,
-          //   formatter: function() {
-          //     return `<b>${this.point.name}</b><br>${this.point.percentage}%`;
-          //   },
-          //   style: {
-          //     fontSize: '12px'
-          //   }
-          // }
         }]
       };
 
       Highcharts.chart(chartContainerRef.current, options);
     }
-  }, [title, subtitle, width, height, data]);
+  }, [title, subtitle, width, height, data, colors]);
 
   return <div ref={chartContainerRef} />;
 };
