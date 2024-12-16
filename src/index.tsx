@@ -288,6 +288,9 @@ export const BarChart: FC = () => {
   })
   const [seriesNames, setSeriesNames] = Retool.useStateArray({ name: 'seriesNames' })
   const [reverseYAxis, setReverseYAxis] = Retool.useStateBoolean({ name: 'reverseYAxis' })
+  const [stacking, setStacking] = Retool.useStateBoolean({ name: 'stacking' })
+  const [xAxisTitle, setXAxisTitle] = Retool.useStateString({ name: 'xAxisTitle' })
+  const [yAxisTitle, setYAxisTitle] = Retool.useStateString({ name: 'yAxisTitle' })
 
   useEffect(() => {
     if (chartContainerRef.current) {
@@ -314,11 +317,14 @@ export const BarChart: FC = () => {
         },
         xAxis: {
           categories: categories,
-          gridLineWidth: 0
+          gridLineWidth: 0,
+          title: {
+            text: xAxisTitle
+          }
         },
         yAxis: {
           title: {
-            text: null
+            text: yAxisTitle
           },
           gridLineWidth: 1,
           reversed: reverseYAxis
@@ -340,11 +346,13 @@ export const BarChart: FC = () => {
             dataLabels: {
               enabled: true
             },
+            stacking: stacking ? 'normal' : undefined
           },
           column: {
             dataLabels: {
               enabled: true
             },
+            stacking: stacking ? 'normal' : undefined
           }
         },
         series: seriesData,
@@ -355,7 +363,7 @@ export const BarChart: FC = () => {
       
       Highcharts.chart(chartContainerRef.current, options)
     }
-  }, [data, categories, colors, title, subtitle, showLegend, width, height]);
+  }, [data, categories, colors, title, subtitle, showLegend, width, height, stacking, xAxisTitle, yAxisTitle]);
 
   return <div ref={chartContainerRef} />
 }
@@ -888,6 +896,110 @@ export const TreemapChart: FC = () => {
   return <div ref={chartContainerRef} />;
 };
 
+export const FundExposureChart: FC = () => {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const [data, setData] = Retool.useStateArray({ name: 'data' });
+  const [title, setTitle] = Retool.useStateString({ name: 'title' });
+  const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
+  const [width, setWidth] = Retool.useStateNumber({ name: 'width' });
+  const [height, setHeight] = Retool.useStateNumber({ name: 'height' });
+  const [colorRange, setColorRange] = Retool.useStateArray({ name: 'colorRange' }); // [minColor, maxColor]
+  const [valueRange, setValueRange] = Retool.useStateArray({ name: 'valueRange' }); // [minValue, maxValue]
+  const [xAxisCategories, setXAxisCategories] = Retool.useStateArray({ name: 'xAxisCategories' });
+  const [yAxisCategories, setYAxisCategories] = Retool.useStateArray({ name: 'yAxisCategories' });
+  const [xAxisTitle, setXAxisTitle] = Retool.useStateString({ name: 'xAxisTitle' });
+  const [yAxisTitle, setYAxisTitle] = Retool.useStateString({ name: 'yAxisTitle' });
+  const [valueLabel, setValueLabel] = Retool.useStateString({ name: 'valueLabel' });
+  const [verticalLineValue, setVerticalLineValue] = Retool.useStateNumber({
+    name: 'verticalLineValue'
+  });
+
+  const [verticalLineColor, setVerticalLineColor] = Retool.useStateString({
+    name: 'verticalLineColor'  });
+
+  useEffect(() => {
+    if (chartContainerRef.current) {
+      const stops = colorRange.map((color, index) => [index / (colorRange.length - 1), color]);
+
+      const options: Highcharts.Options = {
+        chart: {
+          type: 'heatmap',
+          plotBorderWidth: 0,
+          backgroundColor: 'transparent',
+          width: width,
+          height: height,
+          plotBorderColor: '#000000' // Sets the color of the border (e.g., black)
+        },
+        title: {
+          text: title,
+          style: { fontSize: '1em' }
+        },
+        subtitle: {
+          text: subtitle,
+          style: { fontSize: '1em' }
+        },
+        xAxis: {
+          categories: xAxisCategories,
+          title: {
+            text: xAxisTitle
+          },
+          plotLines: verticalLineValue !== undefined ? [{
+            color: verticalLineColor,
+            width: 3,
+            value: verticalLineValue,
+            zIndex: 5  // Make sure line appears above the heatmap
+          }] : undefined
+        },
+        yAxis: {
+          categories: yAxisCategories,
+          title: {
+            text: yAxisTitle
+          },
+          reversed: true
+        },
+        credits: {
+          enabled: false
+        },
+        colorAxis: {
+          min: valueRange[0],
+          max: valueRange[1],
+          stops: stops
+        },
+        legend: {
+          align: 'right',
+          layout: 'vertical',
+          margin: 0,
+          verticalAlign: 'top',
+          y: 25,
+          symbolHeight: 280
+        },
+        tooltip: {
+          formatter: function () {
+            return `<b>${xAxisTitle}</b> : ${xAxisCategories[this.point.x]}<br>` +
+                   `<b>${yAxisTitle}</b> : ${yAxisCategories[this.point.y]}<br>` +
+                   `<b>${valueLabel}</b> : ${this.point.value}`;
+          }
+        },
+        series: [{
+          type: 'heatmap',
+          borderWidth: 1,
+          borderColor: '#000000',
+          data: data,
+          dataLabels: {
+            enabled: true,
+            color: '#000000'
+          }
+        }]
+      };
+
+      Highcharts.chart(chartContainerRef.current, options);
+    }
+  }, [xAxisCategories, yAxisCategories, data, title, subtitle, width, height, xAxisTitle, yAxisTitle, valueLabel, verticalLineValue, verticalLineColor]);
+
+  return <div ref={chartContainerRef} />;
+};
+
+
 export const HeatmapChart: FC = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const [data, setData] = Retool.useStateArray({ name: 'data' });
@@ -928,7 +1040,7 @@ export const HeatmapChart: FC = () => {
           categories: xAxisCategories,
           title: {
             text: xAxisTitle
-          }
+          },
         },
         yAxis: {
           categories: yAxisCategories,
@@ -1136,12 +1248,16 @@ export const LineChart: FC = () => {
   const [verticalLines, setVerticalLines] = Retool.useStateArray({ name: 'verticalLines' });
   const [colors, setColors] = Retool.useStateArray({ name: 'colors' });
   const [useSecondaryYAxis, setUseSecondaryYAxis] = Retool.useStateArray({ name: 'useSecondaryYAxis' }); // Array of booleans
+  const [width, setWidth] = Retool.useStateNumber({ name: 'width' });
+  const [height, setHeight] = Retool.useStateNumber({ name: 'height' });
 
   useEffect(() => {
     if (chartContainerRef.current && seriesData) {
       const options: Highcharts.Options = {
         chart: {
-          type: 'line'
+          type: 'line',
+          width: width,
+          height: height
         },
         title: {
           text: title || " "
@@ -1203,7 +1319,7 @@ export const LineChart: FC = () => {
 
       Highcharts.chart(chartContainerRef.current, options);
     }
-  }, [title, subtitle, yAxisTitle, secondaryYAxisTitle, xAxisValues, seriesData, smooth, showMarkers, verticalLines, useSecondaryYAxis, colors]);
+  }, [title, subtitle, yAxisTitle, secondaryYAxisTitle, xAxisValues, seriesData, smooth, showMarkers, verticalLines, useSecondaryYAxis, colors, width, height]);
 
   return <div ref={chartContainerRef} />;
 };
@@ -1737,7 +1853,7 @@ export const NGFSQuadrant: FC = () => {
             }
             return null;
           }).filter(Boolean),
-          color: colors[groupIndex % colors.length]
+          color: colors[groupIndex % colors.length],
         }));
       } else {
         // No groups - create single series
@@ -1747,7 +1863,7 @@ export const NGFSQuadrant: FC = () => {
             x: xValues[index],
             y: yValues[index],
             z: zValues[index],
-            color: colors[index] || defaultColor
+            color: colors[index] || defaultColor,
           }))
         }];
       }
@@ -1780,42 +1896,42 @@ export const NGFSQuadrant: FC = () => {
                     chart.quadrants = [
                         chart.renderer.rect(chart.plotLeft, chart.plotTop, chart.xAxis[0].toPixels(xMid) - chart.plotLeft, chart.yAxis[0].toPixels(yMid) - chart.plotTop)
                             .attr({
-                                fill: '#397A99', // Top-left quadrant
-                                zIndex: 0
+                                fill: '#00a7ad', // Top-left quadrant
+                                zIndex: 1
                             }).add(),
                         chart.renderer.rect(chart.xAxis[0].toPixels(xMid), chart.plotTop, chart.plotWidth - chart.xAxis[0].toPixels(xMid) + chart.plotLeft, chart.yAxis[0].toPixels(yMid) - chart.plotTop)
                             .attr({
-                                fill: '#305870', // Top-right quadrant
-                                zIndex: 0
+                                fill: '#00a7ad', // Top-right quadrant
+                                zIndex: 1
                             }).add(),
                         chart.renderer.rect(chart.plotLeft, chart.yAxis[0].toPixels(yMid), chart.xAxis[0].toPixels(xMid) - chart.plotLeft, chart.plotHeight - chart.yAxis[0].toPixels(yMid) + chart.plotTop)
                             .attr({
-                                fill: '#469A8E', // Bottom-left quadrant
-                                zIndex: 0
+                                fill: '#00a7ad', // Bottom-left quadrant
+                                zIndex: 1
                             }).add(),
                         chart.renderer.rect(chart.xAxis[0].toPixels(xMid), chart.yAxis[0].toPixels(yMid), chart.plotWidth - chart.xAxis[0].toPixels(xMid) + chart.plotLeft, chart.plotHeight - chart.yAxis[0].toPixels(yMid) + chart.plotTop)
                             .attr({
-                                fill: '#77BFB4', // Bottom-right quadrant
-                                zIndex: 0
+                                fill: '#00a7ad', // Bottom-right quadrant
+                                zIndex: 1
                             }).add()
                     ];
 
                     // Add labels to the corners of the quadrants
                     chart.quadrantLabels = [
                         chart.renderer.text('Disorderly', chart.plotLeft + 5, chart.plotTop + 15)
-                            .css({ color: '#000000', fontSize: '15px', fontWeight: 'bold' })
+                            .css({ color: '#ffffff', fontSize: '15px', fontWeight: 'bold' })
                             .attr({ zIndex: 1 })
                             .add(),
                         chart.renderer.text('Too Little, Too Late', chart.plotLeft + chart.plotWidth - 5, chart.plotTop + 15)
-                            .css({ color: '#000000', fontSize: '15px', textAlign: 'right', fontWeight: 'bold' })
+                            .css({ color: '#ffffff', fontSize: '15px', textAlign: 'right', fontWeight: 'bold' })
                             .attr({ zIndex: 1, align: 'right' })
                             .add(),
                         chart.renderer.text('Orderly', chart.plotLeft + 5, chart.plotTop + chart.plotHeight - 5)
-                            .css({ color: '#000000', fontSize: '15px' , fontWeight: 'bold'})
+                            .css({ color: '#ffffff', fontSize: '15px' , fontWeight: 'bold'})
                             .attr({ zIndex: 1 })
                             .add(),
                         chart.renderer.text('Hot House World', chart.plotLeft + chart.plotWidth - 5, chart.plotTop + chart.plotHeight - 5)
-                            .css({ color: '#000000', fontSize: '15px', textAlign: 'right', fontWeight: 'bold' })
+                            .css({ color: '#ffffff', fontSize: '15px', textAlign: 'right', fontWeight: 'bold' })
                             .attr({ zIndex: 1, align: 'right' })
                             .add()
                     ];
@@ -1840,7 +1956,32 @@ export const NGFSQuadrant: FC = () => {
                         .attr({
                           stroke: '#FFFFFF', // White color
                           'stroke-width': 4,
-                          zIndex: 1, // Ensure it is above the quadrants
+                          zIndex: 2, // Ensure it is above the quadrants
+                        })
+                        .add(),
+
+                      // Fake Circle
+                      // Add these two lines for the plus sign
+                      // Vertical part of the plus
+                      chart.renderer.path([
+                        'M', chart.xAxis[0].toPixels(xMid), chart.yAxis[0].toPixels(yMid) - 70, // Start 10px above center
+                        'L', chart.xAxis[0].toPixels(xMid), chart.yAxis[0].toPixels(yMid) + 70  // End 10px below center
+                      ])
+                        .attr({
+                          stroke: '#b3cf1e',
+                          'stroke-width': 3,
+                          zIndex: 3, // Ensure it's above the white lines
+                        })
+                        .add(),
+                      // Horizontal part of the plus
+                      chart.renderer.path([
+                        'M', chart.xAxis[0].toPixels(xMid) - 70, chart.yAxis[0].toPixels(yMid), // Start 10px left of center
+                        'L', chart.xAxis[0].toPixels(xMid) + 70, chart.yAxis[0].toPixels(yMid)  // End 10px right of center
+                      ])
+                        .attr({
+                          stroke: '#b3cf1e',
+                          'stroke-width': 3,
+                          zIndex: 3, // Ensure it's above the white lines
                         })
                         .add(),
                     ];
@@ -1904,15 +2045,21 @@ export const NGFSQuadrant: FC = () => {
           dataLabels: {
             enabled: true,
             formatter: function () {
-              return this.point.name;
+              return `<div style="text-align: center;">${this.point.name}<br/>VaR: ${this.point.z}</div>`;
             },
+            useHTML: true, // Ensures you can use custom HTML styling
+            align: 'center', // Centers the text horizontally
+            verticalAlign: 'middle', // Centers the text vertically
             style: {
               color: '#000000', // Adjust label color if needed
               textOutline: 'none'
             }
           },
-          minSize: '5%', // Minimum bubble size as a percentage of the chart width/height
+          minSize: '20%', // Minimum bubble size as a percentage of the chart width/height
           maxSize: '20%', // Maximum bubble size as a percentage of the chart width/height
+          marker: {
+            fillOpacity: 1 // Ensures the bubbles are fully opaque
+          },
         })),
         legend: {
           enabled: showLegend
@@ -1934,3 +2081,103 @@ export const NGFSQuadrant: FC = () => {
 
   return <div ref={chartContainerRef} />
 }
+
+export const MirroredBarChart: FC = () => {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  // Retool states
+  const [categories, setCategories] = Retool.useStateArray({ name: 'categories' });
+  const [leftData, setLeftData] = Retool.useStateArray({ name: 'leftData' });
+  const [rightData, setRightData] = Retool.useStateArray({ name: 'rightData' });
+  const [leftSeriesName, setLeftSeriesName] = Retool.useStateString({ name: 'leftSeriesName' });
+  const [rightSeriesName, setRightSeriesName] = Retool.useStateString({ name: 'rightSeriesName' });
+  const [title, setTitle] = Retool.useStateString({ name: 'title' });
+  const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
+  const [xAxisLabel, setXAxisLabel] = Retool.useStateString({ name: 'xAxisLabel' });
+  const [yAxisLabel, setYAxisLabel] = Retool.useStateString({ name: 'yAxisLabel' });
+  const [width, setWidth] = Retool.useStateNumber({ name: 'width' });
+  const [height, setHeight] = Retool.useStateNumber({ name: 'height' });
+  const [colors, setColors] = Retool.useStateArray({ name: 'colors' });
+
+  useEffect(() => {
+    if (chartContainerRef.current) {
+      // Add custom template helper for absolute values
+      Highcharts.Templating.helpers.abs = (value: number) => Math.abs(value);
+
+      const options: Highcharts.Options = {
+        chart: {
+          type: 'bar',
+          width,
+          height
+        },
+        title: {
+          text: title
+        },
+        subtitle: {
+          text: subtitle
+        },
+        xAxis: [{
+          categories,
+          reversed: false,
+          title: {
+            text: xAxisLabel || null
+          },
+          labels: {
+            step: 1
+          },
+        }, { // mirror axis on right side
+          opposite: true,
+          reversed: false,
+          categories,
+          linkedTo: 0,
+          labels: {
+            step: 1
+          },
+        }],
+        yAxis: {
+          title: {
+            text: yAxisLabel || null
+          },
+          labels: {
+            formatter: function() {
+              return Math.abs(this.value) + '%';
+            }
+          }
+        },
+        plotOptions: {
+          series: {
+            stacking: 'normal',
+            borderRadius: '50%'
+          }
+        },
+        tooltip: {
+          formatter: function() {
+            return `<b>${this.series.name}, ${xAxisLabel} : ${this.point.category}</b><br/>` +
+                   `Value: ${Math.abs(this.point.y?.valueOf() as number).toFixed(2)}%`;
+          }
+        },
+        series: [{
+          name: leftSeriesName,
+          data: leftData.map(value => value * -1), // Negative values for left side
+          color: colors?.[0]
+        }, {
+          name: rightSeriesName,
+          data: rightData, // Positive values for right side
+          color: colors?.[1]
+        }],
+        credits: {
+          enabled: false
+        }
+      };
+
+      Highcharts.chart(chartContainerRef.current, options);
+    }
+  }, [
+    categories, leftData, rightData, 
+    leftSeriesName, rightSeriesName,
+    title, subtitle, xAxisLabel, yAxisLabel,
+    width, height, colors
+  ]);
+
+  return <div ref={chartContainerRef} />;
+};
