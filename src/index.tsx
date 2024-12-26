@@ -2377,8 +2377,8 @@ export const BulletChart: FC = () => {
             type: 'bullet',
             data: [
               {
-                y: actual, // Actual value from Retool state
-                target: target, // Target value from Retool state
+                y: actual || 0, // Actual value from Retool state
+                target: target || 0, // Target value from Retool state
               },
             ],
           },
