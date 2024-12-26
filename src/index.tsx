@@ -6,11 +6,15 @@ import AnnotationsModule from 'highcharts/modules/annotations';
 import HighchartsTreemap from 'highcharts/modules/treemap';
 import HighchartsHeatmap from 'highcharts/modules/heatmap';
 import HighchartsSunburst from 'highcharts/modules/sunburst';
+import HighchartsVariablePie from 'highcharts/modules/variable-pie';
+import HighchartsBullet from 'highcharts/modules/bullet';
 HighchartsSunburst(Highcharts); // Initialize sunburst module
 HighchartsHeatmap(Highcharts);
 HighchartsTreemap(Highcharts);
 HighchartsMore(Highcharts) // Initialize highcharts-more module for bubble charts
 AnnotationsModule(Highcharts) // Initialize annotations module
+HighchartsVariablePie(Highcharts);
+HighchartsBullet(Highcharts);
 
 import Boost from 'highcharts/modules/boost';
 Boost(Highcharts);
@@ -1491,6 +1495,7 @@ export const MorphableBubbleChart: FC = () => {
       
       
       
+      
     }
   }, [seriesData, xField, xAltField, yField, yAltField, zField, 
     nameField, groupField, xAxisType, yAxisType, showLegend, 
@@ -2180,4 +2185,220 @@ export const MirroredBarChart: FC = () => {
   ]);
 
   return <div ref={chartContainerRef} />;
+};
+
+export const VariablePieChart: FC = () => {
+  const chartContainerRef = useRef<HTMLDivElement>(null)
+  
+  // Reuse existing state patterns
+  const [labels, setLabels] = Retool.useStateArray({
+    name: 'labels'
+  })
+
+  const [values, setValues] = Retool.useStateArray({
+    name: 'values (slice sizes)'  // For slice sizes (y values)
+  })
+
+  const [zValues, setZValues] = Retool.useStateArray({
+    name: 'zValues (slice height)'  // For the variable dimension
+  })
+
+  const [colors, setColors] = Retool.useStateArray({
+    name: 'colors'
+  })
+
+  const [title, setTitle] = Retool.useStateString({
+    name: 'title'
+  })
+
+  const [subtitle, setSubtitle] = Retool.useStateString({
+    name: 'subtitle'
+  })
+
+  const [width, setWidth] = Retool.useStateNumber({
+    name: 'width'
+  })
+
+  const [height, setHeight] = Retool.useStateNumber({
+    name: 'height'
+  })
+
+  const [minPointSize, setMinPointSize] = Retool.useStateNumber({
+    name: 'minPointSize',
+    initialValue: 10
+  })
+
+  const [innerSize, setInnerSize] = Retool.useStateString({
+    name: 'innerSize',
+    initialValue: '20%'
+  })
+
+  const [borderRadius, setBorderRadius] = Retool.useStateNumber({
+    name: 'borderRadius',
+    initialValue: 5
+  })
+
+  const [yLabel, setYLabel] = Retool.useStateString({
+    name: 'yLabel'
+  })
+
+  const [zLabel, setZLabel] = Retool.useStateString({
+    name: 'zLabel'
+  })
+
+
+  useEffect(() => {
+    if (chartContainerRef.current) {
+      const data = (labels || []).map((label, index) => ({
+        name: label,
+        y: values[index],  // Size of slice
+        z: zValues[index], // Variable dimension
+        color: colors[index]
+      }));
+
+      const options: Highcharts.Options = {
+        chart: {
+          type: 'variablepie',
+          reflow: true,
+          backgroundColor: 'transparent',
+          width: width,
+          height: height
+        },
+        tooltip: {
+          headerFormat: '',
+          pointFormat: '<span style="color:{point.color}">\u25CF</span> <b>{point.name}</b><br/>' +
+            `${yLabel}: <b>{point.y}</b><br/>` +
+            `${zLabel}: <b>{point.z}</b><br/>`
+        },
+        title: {
+          text: title
+        },
+        subtitle: {
+          text: subtitle
+        },
+        credits: {
+          enabled: false
+        },
+        series: [{
+          type: 'variablepie',
+          minPointSize: minPointSize,
+          innerSize: innerSize,
+          zMin: 0,
+          name: 'Variable Pie Series',
+          borderRadius: borderRadius,
+          data: data,
+          dataLabels: {
+            enabled: true,
+            format: `<b>{point.name}</b><br/>${zLabel} : {point.z}`, // Display name and value below
+            align: 'center',
+            verticalAlign: 'middle',
+            inside: false, // Ensure the label is outside the pie if required
+        }
+        }]
+      };
+      
+      Highcharts.chart(chartContainerRef.current, options)
+    }
+  }, [
+    labels, values, zValues, colors, 
+    title, subtitle, width, height,
+    minPointSize, innerSize, borderRadius,
+    zLabel, yLabel
+  ]);
+
+  return <div ref={chartContainerRef} />
+}
+
+export const BulletChart: FC = () => {
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  // Retool state for target and actual values
+  const [target, setTarget] = Retool.useStateNumber({ name: 'target' });
+  const [actual, setActual] = Retool.useStateNumber({ name: 'actual' });
+  const [width, setWidth] = Retool.useStateNumber({ name: 'width' });
+  const [height, setHeight] = Retool.useStateNumber({ name: 'height' });
+  const [targetColor, setTargetColor] = Retool.useStateString({ name: 'targetColor' });
+  const [actualColor, setActualColor] = Retool.useStateString({ name: 'actualColor' });
+  const [title, setTitle] = Retool.useStateString({ name: 'title' });
+  const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
+  const [reversed, setReversed] = Retool.useStateBoolean({ name: 'reversed' });
+  const [xAxisLabel, setXAxisLabel] = Retool.useStateString({ name: 'xAxisLabel' });
+  const [marginLeft, setMarginLeft] = Retool.useStateNumber({ name: 'marginLeft' });
+
+  useEffect(() => {
+    if (chartContainerRef.current) {
+      const options: Highcharts.Options = {
+        chart: {
+          type: 'bullet',
+          inverted: true,
+          marginLeft: marginLeft,
+          width: width,
+          height: height
+        },
+        title: {
+          text: title,
+        },
+        subtitle: {
+          text: subtitle,
+        },
+        legend: {
+          enabled: false,
+        },
+        xAxis: {
+          categories: [
+            xAxisLabel,
+          ],
+        },
+        yAxis: {
+          gridLineWidth: 1,
+          plotBands: [
+            {
+              from: -9e9,
+              to: 9e9,
+              color: '#bbb',
+            },
+          ],
+          title: null,
+          reversed: reversed,
+        },
+        plotOptions: {
+          series: {
+            pointPadding: 0.25,
+            borderWidth: 0,
+            color: actualColor,
+            targetOptions: {
+              width: '500%',
+              color: targetColor,
+            },
+          },
+        },
+        series: [
+          {
+            type: 'bullet',
+            data: [
+              {
+                y: actual, // Actual value from Retool state
+                target: target, // Target value from Retool state
+              },
+            ],
+          },
+        ],
+        tooltip: {
+          pointFormat: '<b>{point.y}</b> (with target at {point.target})',
+        },
+        credits: {
+          enabled: false,
+        },
+      };
+
+      Highcharts.chart(chartContainerRef.current, options);
+    }
+  }, [actual, target, width, height, targetColor, actualColor, title, subtitle, reversed, xAxisLabel, marginLeft]);
+
+  return (
+    <div>
+      {/* Chart container */}
+      <div ref={chartContainerRef} style={{ width: '100%', height: '100%' }} />
+    </div>
+  );
 };
