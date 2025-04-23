@@ -451,6 +451,7 @@ export const BarChart: FC = () => {
 
 export const PackedBubbleChart: FC = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<Highcharts.Chart | null>(null); // Store chart instance
 
   const [labels, setLabels] = Retool.useStateArray({
     name: 'labels'
@@ -500,98 +501,122 @@ export const PackedBubbleChart: FC = () => {
     name: 'colors'
   });
 
-  useEffect(() => {
-    if (chartContainerRef.current) {
-      // Create a color map for groups
-      const colorMap = {};
-      const defaultColors = ['#7cb5ec', '#434348', '#90ed7d', '#f7a35c', '#8085e9', '#f15c80', '#e4d354', '#2b908f', '#f45b5b', '#91e8e1'];
-      const colorsToUse = colors && colors.length > 0 ? colors : defaultColors;
-  
-      groups.forEach((group, index) => {
-        if (!colorMap[group]) {
-          colorMap[group] = colorsToUse[index % colorsToUse.length]; // Cycle through colors if more groups than colors
-        }
+  // Memoize the data preparation logic
+  const prepareSeriesData = useCallback(() => {
+    // Create a color map for groups
+    const colorMap: Record<string, string> = {};
+    const defaultColors = ['#7cb5ec', '#434348', '#90ed7d', '#f7a35c', '#8085e9', '#f15c80', '#e4d354', '#2b908f', '#f45b5b', '#91e8e1'];
+    const colorsToUse = (colors && colors.length > 0 ? colors : defaultColors) as string[];
+
+    (groups || []).forEach((group, index) => {
+      const groupKey = String(group || ''); // Convert to string to ensure type safety
+      if (!colorMap[groupKey]) {
+        colorMap[groupKey] = colorsToUse[index % colorsToUse.length]; // Cycle through colors if more groups than colors
+      }
+    });
+
+    // Organize data by group
+    const groupedData: Record<string, Array<{ name: string; value: number; color: string }>> = {};
+    (labels || []).forEach((label, index) => {
+      const group = String(groups?.[index] || '');
+      if (!groupedData[group]) groupedData[group] = [];
+      groupedData[group].push({
+        name: String(label || ''),
+        value: Number(values?.[index] || 0),
+        color: colorMap[group] // Assign color based on group
       });
-  
-      // Organize data by group
-      const groupedData = (labels || []).reduce((acc, label, index) => {
-        const group = groups[index];
-        if (!acc[group]) acc[group] = [];
-        acc[group].push({
-          name: label,
-          value: values[index],
-          color: colorMap[group] // Assign color based on group
-        });
-        return acc;
-      }, {});
-  
-      // Map grouped data into series format
-      const series = Object.keys(groupedData).map((groupName) => ({
-        type: 'packedbubble',
-        name: groupName,
-        data: groupedData[groupName],
-        color: colorMap[groupName], // Ensure legend color matches bubble color
-        dataLabels: {
-          enabled: true,
-          format: '{point.name}', // Show label if value meets the threshold
-          filter: {
-            property: 'value',
-            operator: '>=',
-            value: labelThreshold  // Only show labels if value is above threshold
-          },
-          style: {
-            color: 'black',
-            textOutline: 'none',
-            fontWeight: 'bold'
-          }
+    });
+
+    // Map grouped data into series format
+    return Object.keys(groupedData).map((groupName) => ({
+      type: 'packedbubble' as const,
+      name: groupName,
+      data: groupedData[groupName],
+      color: colorMap[groupName], // Ensure legend color matches bubble color
+      dataLabels: {
+        enabled: true,
+        format: '{point.name}', // Show label if value meets the threshold
+        filter: {
+          property: 'value',
+          operator: '>=' as const,
+          value: Number(labelThreshold || 0)
+        },
+        style: {
+          color: 'black',
+          textOutline: 'none',
+          fontWeight: 'bold'
         }
-      }));
-  
-      const options: Highcharts.Options = {
-        chart: {
-          type: 'packedbubble',
-          reflow: true,
-          backgroundColor: 'transparent',
-          width: width,
-          height: height,
-        },
-        plotOptions: {
-          packedbubble: {
-            layoutAlgorithm: {
-              gravitationalConstant: 0.03,
-            }
-          }
-        },
-        title: {
-          text: title
-        },
-        subtitle: {
-          text: subtitle
-        },
-        tooltip: {
-          headerFormat: '',
-          pointFormat: '<span style="color:{point.color}">\u25cf</span> {point.name}: <b>{point.value}</b><br/>'
-        },
-        legend: {
-          enabled: showLegend
-        },
-        credits: {
-          enabled: false
-        },
-        series: series.map((s) => ({
-          ...s,
-          minSize: minBubbleSize,
-          maxSize: maxBubbleSize
-        }))
-      };
-  
-      Highcharts.chart(chartContainerRef.current, options);
+      }
+    }));
+  }, [JSON.stringify(labels), JSON.stringify(values), JSON.stringify(groups), JSON.stringify(colors), labelThreshold]);
+
+  // Memoize chart options
+  const getChartOptions = useCallback((): Highcharts.Options => ({
+    chart: {
+      type: 'packedbubble',
+      reflow: true,
+      backgroundColor: 'transparent',
+      width: Number(width || 0),
+      height: Number(height || 0),
+    },
+    plotOptions: {
+      packedbubble: {
+        layoutAlgorithm: {
+          gravitationalConstant: 0.03,
+        }
+      }
+    },
+    title: {
+      text: String(title || '')
+    },
+    subtitle: {
+      text: String(subtitle || '')
+    },
+    tooltip: {
+      headerFormat: '',
+      pointFormat: '<span style="color:{point.color}">\u25cf</span> {point.name}: <b>{point.value}</b><br/>'
+    },
+    legend: {
+      enabled: Boolean(showLegend)
+    },
+    credits: {
+      enabled: false
+    },
+    series: prepareSeriesData().map((s) => ({
+      ...s,
+      minSize: Number(minBubbleSize || 0),
+      maxSize: Number(maxBubbleSize || 0)
+    }))
+  }), [
+    width, height, title, subtitle, showLegend,
+    minBubbleSize, maxBubbleSize,
+    JSON.stringify(prepareSeriesData())
+  ]);
+
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+
+    const options = getChartOptions();
+
+    if (!chartRef.current) {
+      // Create new chart if it doesn't exist
+      chartRef.current = Highcharts.chart(chartContainerRef.current, options);
+    } else {
+      // Update existing chart
+      chartRef.current.update(options, true);
     }
-  }, [labels, values, groups, minBubbleSize, maxBubbleSize, title, subtitle, width, height, showLegend, labelThreshold, colors]);
+
+    // Cleanup function
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+        chartRef.current = null;
+      }
+    };
+  }, [JSON.stringify(getChartOptions())]);
   
   return <div ref={chartContainerRef} />;
 };
-
 
 export const SplitPackedBubbleChart: FC = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
