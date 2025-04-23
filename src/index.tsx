@@ -1,5 +1,5 @@
 import React from 'react'
-import { type FC, useEffect, useRef, useState } from 'react'
+import { type FC, useEffect, useRef, useState, useCallback } from 'react'
 import Highcharts from 'highcharts'
 import HighchartsMore from 'highcharts/highcharts-more'
 import AnnotationsModule from 'highcharts/modules/annotations';
@@ -298,126 +298,156 @@ export const BubbleChart: FC = () => {
 }
 
 export const BarChart: FC = () => {
-  const chartContainerRef = useRef<HTMLDivElement>(null)
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<Highcharts.Chart | null>(null);
   
-  const [data, setData] = Retool.useStateArray({ name: 'data' })
-  const [categories, setCategories] = Retool.useStateArray({ name: 'categories' })
-  const [colors, setColors] = Retool.useStateArray({ name: 'colors' })
-  const [title, setTitle] = Retool.useStateString({ name: 'title' })
-  const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' })
-  const [showLegend, setShowLegend] = Retool.useStateBoolean({ name: 'showLegend' })
-  const [width, setWidth] = Retool.useStateNumber({ name: 'width' })
-  const [height, setHeight] = Retool.useStateNumber({ name: 'height' })
+  const [data, setData] = Retool.useStateArray({ name: 'data' });
+  const [categories, setCategories] = Retool.useStateArray({ name: 'categories' });
+  const [colors, setColors] = Retool.useStateArray({ name: 'colors' });
+  const [title, setTitle] = Retool.useStateString({ name: 'title' });
+  const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
+  const [showLegend, setShowLegend] = Retool.useStateBoolean({ name: 'showLegend' });
+  const [width, setWidth] = Retool.useStateNumber({ name: 'width' });
+  const [height, setHeight] = Retool.useStateNumber({ name: 'height' });
   const [layout, setLayout] = Retool.useStateString({ 
     name: 'layout',
-    defaultValue: 'bar'
-  })
-  const [seriesNames, setSeriesNames] = Retool.useStateArray({ name: 'seriesNames' })
-  const [reverseYAxis, setReverseYAxis] = Retool.useStateBoolean({ name: 'reverseYAxis' })
-  const [stacking, setStacking] = Retool.useStateBoolean({ name: 'stacking' })
-  const [xAxisTitle, setXAxisTitle] = Retool.useStateString({ name: 'xAxisTitle' })
-  const [yAxisTitle, setYAxisTitle] = Retool.useStateString({ name: 'yAxisTitle' })
-  const [yMin, setYMin] = Retool.useStateNumber({ name: 'yMin' })
-  const [yMax, setYMax] = Retool.useStateNumber({ name: 'yMax' })
-  const [marginBottom, setMarginBottom] = Retool.useStateNumber({ name: 'marginBottom' })
-  const [marginTop, setMarginTop] = Retool.useStateNumber({ name: 'marginTop' })
-  const [hideYAxis, setHideYAxis] = Retool.useStateBoolean({ name: 'hideYAxis' })
-  const [fontSize, setFontSize] = Retool.useStateString({ name: 'fontSize' })
-  const [dataLabelsOff, setDataLabelsOff] = Retool.useStateBoolean({ name: 'dataLabelsOff' })
+    initialValue: 'bar'
+  });
+  const [seriesNames, setSeriesNames] = Retool.useStateArray({ name: 'seriesNames' });
+  const [reverseYAxis, setReverseYAxis] = Retool.useStateBoolean({ name: 'reverseYAxis' });
+  const [stacking, setStacking] = Retool.useStateBoolean({ name: 'stacking' });
+  const [xAxisTitle, setXAxisTitle] = Retool.useStateString({ name: 'xAxisTitle' });
+  const [yAxisTitle, setYAxisTitle] = Retool.useStateString({ name: 'yAxisTitle' });
+  const [yMin, setYMin] = Retool.useStateNumber({ name: 'yMin' });
+  const [yMax, setYMax] = Retool.useStateNumber({ name: 'yMax' });
+  const [marginBottom, setMarginBottom] = Retool.useStateNumber({ name: 'marginBottom' });
+  const [marginTop, setMarginTop] = Retool.useStateNumber({ name: 'marginTop' });
+  const [hideYAxis, setHideYAxis] = Retool.useStateBoolean({ name: 'hideYAxis' });
+  const [fontSize, setFontSize] = Retool.useStateString({ name: 'fontSize' });
+  const [dataLabelsOff, setDataLabelsOff] = Retool.useStateBoolean({ name: 'dataLabelsOff' });
+
+  // Memoize the series data preparation
+  const prepareSeriesData = useCallback(() => {
+    return Array.isArray(data[0]) 
+      ? data.map((series, index) => ({
+          type: layout,
+          data: series,
+          color: colors[index % colors.length],
+          name: seriesNames[index]
+        }))
+      : [{
+          type: layout,
+          data,
+          color: colors[0],
+          name: seriesNames[0]
+        }];
+  }, [JSON.stringify(data), JSON.stringify(colors), JSON.stringify(seriesNames), layout]);
+
+  // Memoize chart options
+  const getChartOptions = useCallback((): Highcharts.Options => ({
+    chart: {
+      type: layout,
+      reflow: true,
+      backgroundColor: 'transparent',
+      width: width,
+      height: height,
+      marginBottom: marginBottom || undefined,
+      marginTop: marginTop || undefined,
+    },
+    xAxis: {
+      categories: categories as string[],
+      gridLineWidth: 0,
+      title: {
+        text: xAxisTitle
+      },
+      labels: {
+        style: {
+          fontSize: fontSize || '12px'
+        }
+      }
+    },
+    yAxis: {
+      labels: {
+        enabled: !hideYAxis
+      },
+      title: {
+        text: yAxisTitle
+      },
+      gridLineWidth: 1,
+      reversed: reverseYAxis,
+      min: yMin || undefined,
+      max: yMax || undefined
+    },
+    tooltip: {
+      headerFormat: '{point.key}<br/>',
+      pointFormat: '<span style="color:{point.color}">\u25cf</span> {series.name}: <b>{point.y}</b><br/>'
+    },
+    title: {
+      text: title
+    },
+    subtitle: {
+      text: subtitle
+    },
+    legend: {
+      enabled: showLegend
+    },
+    plotOptions: {
+      bar: {
+        dataLabels: {
+          enabled: !dataLabelsOff,
+          style: {
+            fontSize: fontSize || '12px'
+          }
+        },
+        stacking: stacking ? 'normal' : undefined
+      },
+      column: {
+        dataLabels: {
+          enabled: !dataLabelsOff,
+          style: {
+            fontSize: fontSize || '12px'
+          }
+        },
+        stacking: stacking ? 'normal' : undefined
+      }
+    },
+    series: prepareSeriesData(),
+    credits: {
+      enabled: false
+    }
+  }), [
+    layout, width, height, marginBottom, marginTop,
+    categories, xAxisTitle, fontSize,
+    hideYAxis, yAxisTitle, reverseYAxis, yMin, yMax,
+    title, subtitle, showLegend,
+    dataLabelsOff, stacking,
+    JSON.stringify(prepareSeriesData())
+  ]);
 
   useEffect(() => {
-    if (chartContainerRef.current) {
-      // Handle multiple series if data is nested array, otherwise single series
-      const seriesData = Array.isArray(data[0]) 
-        ? data.map((series, index) => ({
-            data: series,
-            color: colors[index % colors.length],
-            name: seriesNames[index]
-          }))
-        : [{
-            data,
-            color: colors[0],
-            name: seriesNames[0]
-          }];
+    if (!chartContainerRef.current) return;
 
-      const options: Highcharts.Options = {
-        chart: {
-          type: layout,
-          reflow: true,
-          backgroundColor: 'transparent',
-          width: width,
-          height: height,
-          marginBottom: marginBottom || null,
-          marginTop: marginTop || null,
-        },
-        xAxis: {
-          categories: categories,
-          gridLineWidth: 0,
-          title: {
-            text: xAxisTitle
-          },
-          labels: {
-            style: {
-              fontSize: fontSize || '12px'
-            }
-          }
-        },
-        yAxis: {
-          labels: {
-            enabled: !hideYAxis
-          },
-          title: {
-            text: yAxisTitle
-          },
-          gridLineWidth: 1,
-          reversed: reverseYAxis,
-          min: yMin || null,
-          max: yMax || null
-        },
-        tooltip: {
-          headerFormat: '{point.key}<br/>',
-          pointFormat: '<span style="color:{point.color}">\u25cf</span> {series.name}: <b>{point.y}</b><br/>'        },
-        title: {
-          text: title
-        },
-        subtitle: {
-          text: subtitle
-        },
-        legend: {
-          enabled: showLegend
-        },
-        plotOptions: {
-          bar: {
-            dataLabels: {
-              enabled: !dataLabelsOff,
-              style: {
-                fontSize: fontSize || '12px'
-              }
-            },
-            stacking: stacking ? 'normal' : undefined
-          },
-          column: {
-            dataLabels: {
-              enabled: !dataLabelsOff,
-              style: {
-                fontSize: fontSize || '12px'
-              }
-            },
-            stacking: stacking ? 'normal' : undefined
-          }
-        },
-        series: seriesData,
-        credits: {
-          enabled: false
-        }
-      };
-      
-      Highcharts.chart(chartContainerRef.current, options)
+    const options = getChartOptions();
+
+    if (!chartRef.current) {
+      // Create new chart if it doesn't exist
+      chartRef.current = Highcharts.chart(chartContainerRef.current, options);
+    } else {
+      // Update existing chart
+      chartRef.current.update(options, true);
     }
-  }, [data, categories, colors, title, subtitle, showLegend, width, height, stacking, xAxisTitle, yAxisTitle, yMin, yMax, marginBottom, hideYAxis, fontSize, dataLabelsOff]);
 
-  return <div ref={chartContainerRef} />
-}
+    // Cleanup function
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+        chartRef.current = null;
+      }
+    };
+  }, [JSON.stringify(getChartOptions())]);
+
+  return <div ref={chartContainerRef} />;
+};
 
 export const PackedBubbleChart: FC = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -1681,74 +1711,87 @@ export const StockChartComponent: FC = () => {
     name: "colorData", // This will store the color for each stock symbol
   });
 
-  // Ref to reference the chart container
+  // Refs to reference the chart container and chart instance
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<Highcharts.Chart | null>(null);
 
-  // Function to create the Highcharts stock chart
-  const createChart = (series: any) => {
-    if (chartContainerRef.current) {
-      Highcharts.stockChart(chartContainerRef.current, {
-        rangeSelector: {
-          selected: 4,
+  // Memoize the prepareSeries function to prevent unnecessary recalculations
+  const prepareSeries = useCallback(() => {
+    return chartData.map((stock: any, index: number) => ({
+      ...stock,
+      color: colorData[index] || "#7cb5ec", // Default to a light blue if no color is set
+    }));
+  }, [JSON.stringify(chartData), JSON.stringify(colorData)]); // Deep comparison
+
+  // Function to create or update the Highcharts stock chart
+  const createOrUpdateChart = useCallback((series: any) => {
+    if (!chartContainerRef.current) return;
+
+    const options: Highcharts.Options = {
+      rangeSelector: {
+        selected: 4,
+      },
+      yAxis: {
+        labels: {
+          format: '{#if (gt value 0)}+{/if}{value}%',
         },
-        yAxis: {
-          labels: {
-            format: '{#if (gt value 0)}+{/if}{value}%',
+        plotLines: [
+          {
+            value: 0,
+            width: 2,
+            color: 'silver',
           },
-          plotLines: [
-            {
-              value: 0,
-              width: 2,
-              color: 'silver',
-            },
-          ],
+        ],
+      },
+      plotOptions: {
+        series: {
+          compare: 'percent',
+          showInNavigator: true,
         },
-        plotOptions: {
-          series: {
-            compare: 'percent',
-            showInNavigator: true,
-          },
-        },
-        tooltip: {
-          pointFormat: '<span style="color:{series.color}">' +
-            '{series.name}</span>: <b>{point.y}</b> ' +
-            '({point.change}%)<br/>',
-          valueDecimals: 2,
-          split: true,
-        },
-        series,
-        credits: {
-          enabled: false,
-        },
-        legend: {
-          enabled: true,
-        },
-      });
+      },
+      tooltip: {
+        pointFormat: '<span style="color:{series.color}">' +
+          '{series.name}</span>: <b>{point.y}</b> ' +
+          '({point.change}%)<br/>',
+        valueDecimals: 2,
+        split: true,
+      },
+      series,
+      credits: {
+        enabled: false,
+      },
+      legend: {
+        enabled: true,
+      },
+    };
+
+    if (!chartRef.current) {
+      // Create new chart if it doesn't exist
+      chartRef.current = Highcharts.stockChart(chartContainerRef.current, options);
+    } else {
+      // Update existing chart
+      chartRef.current.update(options, true);
     }
-  };
+  }, []); // No dependencies as this is just a configuration function
 
-  // Combine chart data with color data and create the chart
-  const prepareSeries = () => {
-    // Merge the chartData with the colors (if available) for each stock symbol
-    return chartData.map((stock: any, index: number) => {
-      return {
-        ...stock,
-        color: colorData[index] || "#7cb5ec", // Default to a light blue if no color is set
-      };
-    });
-  };
-
-  // Create the chart when chartData or colorData changes
+  // Create or update the chart when data changes
   useEffect(() => {
     if (chartData.length > 0) {
-      const series = prepareSeries(); // Prepare the series data with colors
-      createChart(series); // Create the chart with the prepared data
+      const series = prepareSeries();
+      createOrUpdateChart(series);
     }
-  }, [chartData, colorData]); // Re-run this effect when chartData or colorData changes
+
+    // Cleanup function to destroy chart on unmount
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+        chartRef.current = null;
+      }
+    };
+  }, [JSON.stringify(chartData), JSON.stringify(colorData)]); // Deep comparison of data changes
 
   return (
     <div>
-      {/* Render the Highcharts chart inside this div */}
       <div ref={chartContainerRef} style={{ width: '100%', height: '400px' }} />
     </div>
   );
