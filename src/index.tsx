@@ -887,9 +887,27 @@ export const DataOnlyTreemapChart: FC = () => {
     // Assign colors and generate shades
     return data.map((point) => {
       if (point?.parent === '0.0') {
-        // Level 1: Assign a base color
         const pointId = point?.id || '';
-        const color = colors[parseInt(pointId, 10) % colors.length];
+        const pointName = point?.name || '';
+        
+        // Maintain a set of used colors
+        const usedColors = new Set(parentColorMap.values());
+        
+        // Find the next available color
+        let colorIndex = pointName ? pointName.length % colors.length : 0;
+        let color = colors[colorIndex];
+        
+        // If color is already used, try the next one
+        if (usedColors.size < colors.length) {
+          while (usedColors.has(color)) {
+            colorIndex = (colorIndex + 1) % colors.length;
+            color = colors[colorIndex];
+          }
+        } else {
+          // All colors are used; fallback strategy (e.g., reuse with a modifier)
+          color = colors[colorIndex];
+        }
+        
         parentColorMap.set(pointId, color); // Save color for children
         return {
           ...point,
@@ -902,7 +920,7 @@ export const DataOnlyTreemapChart: FC = () => {
           ...point,
           color: generateShade(parentColor, point?.percent ? -Math.min(0.8, point.percent / 10) : -0.3), // Darker for higher values
         };
-      }
+      } 
       return point; // Return as-is for other nodes
     });
   }, [JSON.stringify(data), JSON.stringify(colors), generateShade]);
