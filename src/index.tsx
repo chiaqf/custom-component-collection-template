@@ -104,18 +104,14 @@ export const PieChart: FC = () => {
 
 export const BubbleChart: FC = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
+  const chartRef = useRef<Highcharts.Chart | null>(null) // Store chart instance
   
   const [xValues, setXValues] = Retool.useStateArray({ name: 'xValues' })
   const [xLabel, setXLabel] = Retool.useStateString({ name: 'xLabel' })
   const [yValues, setYValues] = Retool.useStateArray({ name: 'yValues' })
   const [yLabel, setYLabel] = Retool.useStateString({ name: 'yLabel' })
-  const [zValues, setZValues] = Retool.useStateArray({
-    name: 'zValues'  // For bubble sizes
-  })
-  
-  const [zLabel, setZLabel] = Retool.useStateString({
-    name: 'zLabel'
-  })
+  const [zValues, setZValues] = Retool.useStateArray({ name: 'zValues' })
+  const [zLabel, setZLabel] = Retool.useStateString({ name: 'zLabel' })
 
   const [labels, setLabels] = Retool.useStateArray({
     name: 'labels'
@@ -259,17 +255,43 @@ export const BubbleChart: FC = () => {
         credits: {
           enabled: false
         }
-        };
+      };
 
-      
-      Highcharts.chart(chartContainerRef.current, options);
+      if (!chartRef.current) {
+        // Create chart only if it doesn't exist
+        chartRef.current = Highcharts.chart(chartContainerRef.current, options);
+      } else {
+        // Update existing chart instead of recreating
+        chartRef.current.update(options, true);
+      }
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+        chartRef.current = null;
+      }
     }
   }, [
-    xValues, yValues, zValues, labels, colors, 
-    title, subtitle, width, height,
-    xLabel, yLabel, zLabel,
-    groups, showLegend,
-    xAxisType, yAxisType, labelThreshold
+    JSON.stringify(xValues),
+    JSON.stringify(yValues),
+    JSON.stringify(zValues),
+    JSON.stringify(labels),
+    JSON.stringify(colors),
+    JSON.stringify(groups),
+    title,
+    subtitle,
+    width,
+    height,
+    xLabel,
+    yLabel,
+    zLabel,
+    showLegend,
+    xAxisType,
+    yAxisType,
+    labelThreshold,
+    defaultColor
   ]);
 
   return <div ref={chartContainerRef} />
