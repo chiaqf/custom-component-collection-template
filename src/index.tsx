@@ -22,6 +22,8 @@ import { Retool } from '@tryretool/custom-component-support'
 
 export const PieChart: FC = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
+  const chartRef = useRef<Highcharts.Chart | null>(null) // Store chart instance
+  
   const [labels, setLabels] = Retool.useStateArray({
     name: 'labels'
   })
@@ -50,53 +52,76 @@ export const PieChart: FC = () => {
     name: 'height'
   })
 
-  useEffect(() => {
-    if (chartContainerRef.current) {
-      const data = (labels || []).map((label, index) => ({
-        name: label,
-        y: values[index],
-        color: colors[index]
-      }));
+  // Memoize data preparation
+  const prepareData = useCallback(() => {
+    return (labels || []).map((label, index) => ({
+      name: String(label || ''),
+      y: Number(values?.[index] || 0),
+      color: colors?.[index] ? String(colors[index]) : undefined
+    }));
+  }, [JSON.stringify(labels), JSON.stringify(values), JSON.stringify(colors)]);
 
-    const options: Highcharts.Options = {
-      chart: {
-        type: 'pie',
-        reflow: true,
-        backgroundColor: 'transparent',
-        width: width,
-        height: height
-      },
-      tooltip: {
-        headerFormat: '',
-        pointFormat:
-            '<span style="color:{point.color}">\u25cf</span> ' +
-            '{point.name}: <b>{point.percentage:.1f}%</b>'
-      },
-      title: {
-        text: title
-      },
-      subtitle: {
-        text: subtitle
-      },
-      credits: {
-        enabled: false
-      },
-      series: [{
-          allowPointSelect: true,
-          cursor: 'pointer',
-          type: 'pie',
-          data: data,
-          dataLabels: [{
-            enabled: true,
-            format: '{point.name} : {point.percentage:.1f}%',
-            distance: 20,
-          }]
-        }
-      ]
-      };
-      Highcharts.chart(chartContainerRef.current, options)
+  // Memoize chart options
+  const getChartOptions = useCallback((): Highcharts.Options => ({
+    chart: {
+      type: 'pie',
+      reflow: true,
+      backgroundColor: 'transparent',
+      width: width,
+      height: height
+    },
+    tooltip: {
+      headerFormat: '',
+      pointFormat:
+          '<span style="color:{point.color}">\u25cf</span> ' +
+          '{point.name}: <b>{point.percentage:.1f}%</b>'
+    },
+    title: {
+      text: title
+    },
+    subtitle: {
+      text: subtitle
+    },
+    credits: {
+      enabled: false
+    },
+    series: [{
+      allowPointSelect: true,
+      cursor: 'pointer',
+      type: 'pie',
+      data: prepareData(),
+      dataLabels: [{
+        enabled: true,
+        format: '{point.name} : {point.percentage:.1f}%',
+        distance: 20,
+      }]
+    }]
+  }), [
+    width, height, title, subtitle,
+    JSON.stringify(prepareData())
+  ]);
+
+  useEffect(() => {
+    if (!chartContainerRef.current) return;
+
+    const options = getChartOptions();
+
+    if (!chartRef.current) {
+      // Create new chart if it doesn't exist
+      chartRef.current = Highcharts.chart(chartContainerRef.current, options);
+    } else {
+      // Update existing chart
+      chartRef.current.update(options, true);
+    }
+
+    // Cleanup function
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+        chartRef.current = null;
+      }
     };
-  }, [labels, values, colors, title, subtitle]);
+  }, [JSON.stringify(getChartOptions())]);
 
   return <div ref={chartContainerRef} />
 }
@@ -943,6 +968,8 @@ export const DataOnlyTreemapChart: FC = () => {
 
 export const TreemapChart: FC = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<Highcharts.Chart | null>(null); // Store chart instance
+
   const [labels, setLabels] = Retool.useStateArray({ name: 'labels' });
   const [values, setValues] = Retool.useStateArray({ name: 'values' });
   const [colors, setColors] = Retool.useStateArray({ name: 'colors' });
@@ -951,54 +978,77 @@ export const TreemapChart: FC = () => {
   const [width, setWidth] = Retool.useStateNumber({ name: 'width' });
   const [height, setHeight] = Retool.useStateNumber({ name: 'height' });
 
+  // Memoize data preparation
+  const prepareData = useCallback(() => {
+    const totalValue = (values || []).reduce((acc, val) => acc + (val || 0), 0);
+
+    return (labels || []).map((label, index) => ({
+      name: label || '',
+      value: (values || [])[index] || 0,
+      color: (colors || [])[index],  // Color can be undefined
+      percentage: (((values || [])[index] || 0) / (totalValue || 1) * 100).toFixed(1)
+    }));
+  }, [JSON.stringify(labels), JSON.stringify(values), JSON.stringify(colors)]);
+
+  // Memoize chart options
+  const getChartOptions = useCallback((): Highcharts.Options => ({
+    chart: {
+      type: 'treemap',
+      reflow: true,
+      backgroundColor: 'transparent',
+      width: width,
+      height: height
+    },
+    title: {
+      text: title
+    },
+    subtitle: {
+      text: subtitle
+    },
+    credits: {
+      enabled: false
+    },
+    series: [{
+      type: 'treemap',
+      layoutAlgorithm: 'squarified',
+      clip: false,
+      data: prepareData(),
+      dataLabels: {
+        enabled: true,
+        formatter: function() {
+          return `<b>${this.point.name}</b><br>${this.point.percentage}%`;
+        },
+        style: {
+          fontSize: '12px'
+        }
+      }
+    }]
+  }), [
+    width, height, title, subtitle,
+    JSON.stringify(prepareData())
+  ]);
+
   useEffect(() => {
-    if (chartContainerRef.current) {
-      const totalValue = (values || []).reduce((acc, val) => acc + (val || 0), 0);
+    if (!chartContainerRef.current) return;
 
-      const data = (labels || []).map((label, index) => ({
-        name: label || '',
-        value: (values || [])[index] || 0,
-        color: (colors || [])[index],  // Color can be undefined
-        percentage: (((values || [])[index] || 0) / (totalValue || 1) * 100).toFixed(1)
-      }));
+    const options = getChartOptions();
 
-      const options: Highcharts.Options = {
-        chart: {
-          type: 'treemap',
-          reflow: true,
-          backgroundColor: 'transparent',
-          width: width,
-          height: height
-        },
-        title: {
-          text: title
-        },
-        subtitle: {
-          text: subtitle
-        },
-        credits: {
-          enabled: false
-        },
-        series: [{
-          type: 'treemap',
-          layoutAlgorithm: 'squarified',
-          clip: false,
-          data: data,
-          dataLabels: {
-            enabled: true,
-            formatter: function() {
-              return `<b>${this.point.name}</b><br>${this.point.percentage}%`;
-            },
-            style: {
-              fontSize: '12px'
-            }
-          }
-        }]
-      };
-
-      Highcharts.chart(chartContainerRef.current, options);
+    if (!chartRef.current) {
+      // Create new chart if it doesn't exist
+      chartRef.current = Highcharts.chart(chartContainerRef.current, options);
+    } else {
+      // Update existing chart
+      chartRef.current.update(options, true);
     }
-  }, [labels, values, colors, title, subtitle, width, height]);
+
+    // Cleanup function
+    return () => {
+      if (chartRef.current) {
+        chartRef.current.destroy();
+        chartRef.current = null;
+      }
+    };
+  }, [JSON.stringify(getChartOptions())]);
 
   return <div ref={chartContainerRef} />;
 };
