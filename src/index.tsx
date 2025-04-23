@@ -295,6 +295,13 @@ export const BarChart: FC = () => {
   const [stacking, setStacking] = Retool.useStateBoolean({ name: 'stacking' })
   const [xAxisTitle, setXAxisTitle] = Retool.useStateString({ name: 'xAxisTitle' })
   const [yAxisTitle, setYAxisTitle] = Retool.useStateString({ name: 'yAxisTitle' })
+  const [yMin, setYMin] = Retool.useStateNumber({ name: 'yMin' })
+  const [yMax, setYMax] = Retool.useStateNumber({ name: 'yMax' })
+  const [marginBottom, setMarginBottom] = Retool.useStateNumber({ name: 'marginBottom' })
+  const [marginTop, setMarginTop] = Retool.useStateNumber({ name: 'marginTop' })
+  const [hideYAxis, setHideYAxis] = Retool.useStateBoolean({ name: 'hideYAxis' })
+  const [fontSize, setFontSize] = Retool.useStateString({ name: 'fontSize' })
+  const [dataLabelsOff, setDataLabelsOff] = Retool.useStateBoolean({ name: 'dataLabelsOff' })
 
   useEffect(() => {
     if (chartContainerRef.current) {
@@ -317,21 +324,33 @@ export const BarChart: FC = () => {
           reflow: true,
           backgroundColor: 'transparent',
           width: width,
-          height: height
+          height: height,
+          marginBottom: marginBottom || null,
+          marginTop: marginTop || null,
         },
         xAxis: {
           categories: categories,
           gridLineWidth: 0,
           title: {
             text: xAxisTitle
+          },
+          labels: {
+            style: {
+              fontSize: fontSize || '12px'
+            }
           }
         },
         yAxis: {
+          labels: {
+            enabled: !hideYAxis
+          },
           title: {
             text: yAxisTitle
           },
           gridLineWidth: 1,
-          reversed: reverseYAxis
+          reversed: reverseYAxis,
+          min: yMin || null,
+          max: yMax || null
         },
         tooltip: {
           headerFormat: '{point.key}<br/>',
@@ -348,13 +367,19 @@ export const BarChart: FC = () => {
         plotOptions: {
           bar: {
             dataLabels: {
-              enabled: true
+              enabled: !dataLabelsOff,
+              style: {
+                fontSize: fontSize || '12px'
+              }
             },
             stacking: stacking ? 'normal' : undefined
           },
           column: {
             dataLabels: {
-              enabled: true
+              enabled: !dataLabelsOff,
+              style: {
+                fontSize: fontSize || '12px'
+              }
             },
             stacking: stacking ? 'normal' : undefined
           }
@@ -362,12 +387,12 @@ export const BarChart: FC = () => {
         series: seriesData,
         credits: {
           enabled: false
-      },
+        }
       };
       
       Highcharts.chart(chartContainerRef.current, options)
     }
-  }, [data, categories, colors, title, subtitle, showLegend, width, height, stacking, xAxisTitle, yAxisTitle]);
+  }, [data, categories, colors, title, subtitle, showLegend, width, height, stacking, xAxisTitle, yAxisTitle, yMin, yMax, marginBottom, hideYAxis, fontSize, dataLabelsOff]);
 
   return <div ref={chartContainerRef} />
 }
@@ -624,6 +649,7 @@ export const AreaChart: FC = () => {
   // Retool states for user-defined inputs
   const [title, setTitle] = Retool.useStateString({ name: 'title' });
   const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
+  const [xAxisTitle, setXAxisTitle] = Retool.useStateString({ name: 'xAxisTitle' });
   const [yAxisTitle, setYAxisTitle] = Retool.useStateString({ name: 'yAxisTitle' });
   const [xAxisValues, setXAxisValues] = Retool.useStateArray({ name: 'xAxisValues' }); // Array of x values
   const [seriesData, setSeriesData] = Retool.useStateArray({ name: 'seriesData' }); // Array of series with x, y pairs
@@ -652,7 +678,7 @@ export const AreaChart: FC = () => {
         },
         xAxis: {
           title: {
-            text: 'X-Axis'
+            text: xAxisTitle || 'X-Axis'
           },
           type: 'linear', // Use linear axis for numeric x values
           accessibility: {
@@ -677,7 +703,7 @@ export const AreaChart: FC = () => {
           },
         },
         tooltip: {
-          pointFormat: '{series.name}: <b>{point.y:,.0f}</b><br/>at {point.x}'
+          pointFormat: `{series.name}: <b>{point.y:,.4f}</b><br/>${yAxisTitle || 'Y-Axis'}: {point.y:,.4f}<br/>${xAxisTitle || 'X-Axis'}: {point.x}`
         },
         plotOptions: {
           areaspline: {
@@ -920,6 +946,13 @@ export const FundExposureChart: FC = () => {
 
   const [verticalLineColor, setVerticalLineColor] = Retool.useStateString({
     name: 'verticalLineColor'  });
+  const [borderColor, setBorderColor] = Retool.useStateString({
+    name: 'borderColor'
+  });
+  const [fontSize, setFontSize] =  Retool.useStateString({
+    name: 'fontSize',
+    initialValue: '15px'
+  });
 
   useEffect(() => {
     if (chartContainerRef.current) {
@@ -932,7 +965,7 @@ export const FundExposureChart: FC = () => {
           backgroundColor: 'transparent',
           width: width,
           height: height,
-          plotBorderColor: '#000000' // Sets the color of the border (e.g., black)
+          plotBorderColor: borderColor || '#000000'
         },
         title: {
           text: title,
@@ -944,6 +977,11 @@ export const FundExposureChart: FC = () => {
         },
         xAxis: {
           categories: xAxisCategories,
+          labels:{
+            style: {
+              fontSize: fontSize || '15px'
+            }
+          },
           title: {
             text: xAxisTitle
           },
@@ -956,6 +994,11 @@ export const FundExposureChart: FC = () => {
         },
         yAxis: {
           categories: yAxisCategories,
+          labels:{
+            style: {
+              fontSize: fontSize || '15px'
+            }
+          },
           title: {
             text: yAxisTitle
           },
@@ -987,7 +1030,7 @@ export const FundExposureChart: FC = () => {
         series: [{
           type: 'heatmap',
           borderWidth: 1,
-          borderColor: '#000000',
+          borderColor: borderColor || '#000000',
           data: data,
           dataLabels: {
             enabled: true,
@@ -998,7 +1041,9 @@ export const FundExposureChart: FC = () => {
 
       Highcharts.chart(chartContainerRef.current, options);
     }
-  }, [xAxisCategories, yAxisCategories, data, title, subtitle, width, height, xAxisTitle, yAxisTitle, valueLabel, verticalLineValue, verticalLineColor]);
+  }, [xAxisCategories, yAxisCategories, data, title, subtitle, width, height, 
+    xAxisTitle, yAxisTitle, valueLabel, verticalLineValue, verticalLineColor, 
+    borderColor, fontSize]);
 
   return <div ref={chartContainerRef} />;
 };
@@ -2262,7 +2307,7 @@ export const VariablePieChart: FC = () => {
           reflow: true,
           backgroundColor: 'transparent',
           width: width,
-          height: height
+          height: height,
         },
         tooltip: {
           headerFormat: '',
