@@ -126,7 +126,6 @@ export const PieChart: FC = () => {
   return <div ref={chartContainerRef} />
 }
 
-
 export const BubbleChart: FC = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<Highcharts.Chart | null>(null) // Store chart instance
@@ -179,7 +178,11 @@ export const BubbleChart: FC = () => {
   const [labelThreshold, setLabelThreshold] = Retool.useStateNumber({ name: 'labelThreshold' });
   const [plotLineXValues, setPlotLineXValues] = Retool.useStateArray({ name: 'plotLineXValues' });
   const [plotLineLabels, setPlotLineLabels] = Retool.useStateArray({ name: 'plotLineLabels' });
+  const [categories, setCategories] = Retool.useStateArray({ name: 'Categories' });
+  const [minSize, setMinSize] = Retool.useStateNumber({ name: 'minSize' });
+  const [maxSize, setMaxSize] = Retool.useStateNumber({ name: 'maxSize' });
 
+  
   useEffect(() => {
     if (chartContainerRef.current) {
       // Group the data by unique group values
@@ -228,6 +231,12 @@ export const BubbleChart: FC = () => {
           width: width,
           height: height
         },
+        plotOptions: {
+          bubble: {
+            minSize: minSize || 1,
+            maxSize: maxSize || 50
+          }
+        },
         xAxis: {
           title: {
             text: xLabel
@@ -257,11 +266,11 @@ export const BubbleChart: FC = () => {
           title: {
             text: yLabel
           },
-          type: yAxisType as 'linear' | 'logarithmic',
+          type: yAxisType as 'linear' | 'logarithmic' | 'category',
+          categories: yAxisType === 'category' ? categories : undefined,
           gridLineWidth: 1,
-          startOnTick: true,
-          endOnTick: true,
-          showLastLabel: true,
+          startOnTick: yAxisType !== 'category',
+          endOnTick: yAxisType !== 'category'
         },
         tooltip: {
           headerFormat: '',
