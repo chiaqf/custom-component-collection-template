@@ -177,7 +177,9 @@ export const BubbleChart: FC = () => {
   const [xAxisType, setXAxisType] = Retool.useStateString({ name: 'xAxisType' });
   const [yAxisType, setYAxisType] = Retool.useStateString({ name: 'yAxisType' });
   const [labelThreshold, setLabelThreshold] = Retool.useStateNumber({ name: 'labelThreshold' });
-  
+  const [plotLineXValues, setPlotLineXValues] = Retool.useStateArray({ name: 'plotLineXValues' });
+  const [plotLineLabels, setPlotLineLabels] = Retool.useStateArray({ name: 'plotLineLabels' });
+
   useEffect(() => {
     if (chartContainerRef.current) {
       // Group the data by unique group values
@@ -235,6 +237,21 @@ export const BubbleChart: FC = () => {
           startOnTick: true,
           endOnTick: true,
           showLastLabel: true,
+          plotLines: plotLineXValues.map((xValue, index) => ({
+            value: xValue, // x-coordinate where the line is drawn
+            color: '#000000', // Line color (customize as needed)
+            width: 1, // Line width
+            dashStyle: 'Dash',
+            zIndex: 1, // Ensure the line appears above other chart elements
+            label: {
+              text: plotLineLabels[index] || `Line ${index + 1}`, // Use provided label or default
+              align: 'left', // Label alignment: 'left', 'center', or 'right'
+              verticalAlign: 'top',
+              style: {
+                color: '#000000'
+              }
+            }
+          }))
         },
         yAxis: {
           title: {
