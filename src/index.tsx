@@ -1533,20 +1533,18 @@ export const LineChart: FC = () => {
       title: {
         text: xAxisTitle || 'X-Axis'
       },
-      // You might want to add more specific range descriptions if xAxisValues can be empty
       accessibility: {
         rangeDescription: xAxisValues && xAxisValues.length > 0
           ? `Range: ${Math.min(...xAxisValues.map(Number))} to ${Math.max(...xAxisValues.map(Number))}.`
           : ''
       },
-      // Add plotLines for verticalLines if desired
       plotLines: (verticalLines || []).map((value: any) => ({
-        color: verticalLinesColor, // Or define color in verticalLines array
+        color: verticalLinesColor,
         width: 2,
         value: Number(value),
         zIndex: 5,
         label: {
-          text: verticalLinesLabel, // Customize label as needed
+          text: verticalLinesLabel,
           rotation: 90,
           style: {
             color: verticalLinesColor
@@ -1568,7 +1566,12 @@ export const LineChart: FC = () => {
       }
     ],
     tooltip: {
-      pointFormat: '{series.name} had <b>{point.y}</b><br/>at {point.x}'
+      formatter: function () {
+        // Use the xAxisTitle variable from the closure scope
+        // Fallback to 'X-Axis' if xAxisTitle is empty
+        const xTitle = xAxisTitle;
+        return `${this.series.name} : ${this.y} <br/> ${xTitle} : ${this.x}`;
+      }
     },
     credits: {
       enabled: false
