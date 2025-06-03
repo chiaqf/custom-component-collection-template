@@ -1,4 +1,6 @@
 import React from 'react'
+import 'bootstrap/dist/css/bootstrap.min.css';
+import { Form } from 'react-bootstrap';
 import { type FC, useEffect, useRef, useState, useCallback } from 'react'
 import Highcharts from 'highcharts'
 import HighchartsMore from 'highcharts/highcharts-more'
