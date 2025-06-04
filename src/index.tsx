@@ -1632,197 +1632,240 @@ export const LineChart: FC = () => {
 };
 
 export const MorphableBubbleChart: FC = () => {
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-
-  // Retool states for user-defined data and field mappings
-  const [seriesData, setSeriesData] = Retool.useStateArray({ name: 'seriesData' });
-  const [xField, setXField] = Retool.useStateString({ name: 'xField' });
-  const [xAltField, setXAltField] = Retool.useStateString({ name: 'xAltField' });
-  const [yField, setYField] = Retool.useStateString({ name: 'yField' });
-  const [yAltField, setYAltField] = Retool.useStateString({ name: 'yAltField' });
-  const [zField, setZField] = Retool.useStateString({ name: 'zField' });
-  const [nameField, setNameField] = Retool.useStateString({ name: 'nameField' });
-  const [groupField, setGroupField] = Retool.useStateArray({ name: 'groupField' });
-  const [xAxisType, setXAxisType] = Retool.useStateString({ name: 'xAxisType' });
-  const [yAxisType, setYAxisType] = Retool.useStateString({ name: 'yAxisType' });
-  const [showLegend, setShowLegend] = Retool.useStateBoolean({ name: 'showLegend' });
-  const [toggleOptions, setToggleOptions] = Retool.useStateArray({ name: 'toggleOptions' });
-  const [colors, setColors] = Retool.useStateArray({ name: 'colors' });
-
-  const [title, setTitle] = Retool.useStateString({ name: 'title' });
-  const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
-  const [xAxisTitle, setXAxisTitle] = Retool.useStateString({ name: 'xAxisTitle' });
-  const [yAxisTitle, setYAxisTitle] = Retool.useStateString({ name: 'yAxisTitle' });
+    const chartContainerRef = useRef<HTMLDivElement>(null);
+    const chartRef = useRef<Highcharts.Chart | null>(null);
   
-  const [width, setWidth] = Retool.useStateNumber({ name: 'width' });
-  const [height, setHeight] = Retool.useStateNumber({ name: 'height' });
-
-  useEffect(() => {
-    if (chartContainerRef.current && seriesData && xField && yField && groupField) {
-
-      const colorMap: Record<string, string> = {};
-      groupField.forEach((group, index) => {
-        if (!colorMap[group] && colors.length > 0) {
-          colorMap[group] = colors[index % colors.length]; // Assign a color from the colors array
-        }
-      });
-      // Group the data using the groupField array
-      const groupedData = seriesData.reduce((acc: Record<string, any[]>, point: any, index: number) => {
-        const group = groupField[index] || 'Ungrouped';
-        if (!acc[group]) {
-          acc[group] = [];
-        }
-        acc[group].push({
-          x: point[xField],
-          x_1: point[xAltField],
-          y: point[yField],
-          y_1: point[yAltField],
-          z: zField ? point[zField] : undefined,
-          name: nameField ? point[nameField] : undefined,
-        });
-        return acc;
-      }, {});
-
-      const seriesOptions = Object.keys(groupedData).map(group => ({
-        name: group,
-        data: groupedData[group],
-        color: colorMap[group], // Assign color based on group name
-        animation: {
-          duration: 1000,
-          easing: 'easeOutBounce'
-        },
-        dataLabels: {
-          enabled: true,
-          formatter: function () {
-            return this.point.name;
-          },
-          style: {
-            color: '#000000', // Adjust label color if needed
-            textOutline: 'none'
-          }
-        }
-      }));
-
-      const originalData = seriesOptions.map(series => ({
-        ...series,
-        data: series.data.map(point => ({ ...point }))
-      }));
-
-      const options: Highcharts.Options = {
-        chart: {
-          type: 'bubble',
-          width: width,
-          height: height,
-          plotBorderWidth: 1,
-          zooming: {
-            type: 'xy'
-          },
-          renderTo: chartContainerRef.current
-        },
-        title: {
-          text: title
-        },
-        subtitle: {
-          text: subtitle
-        },
-        xAxis: {
-          gridLineWidth: 1,
-          type: xAxisType as 'linear' | 'logarithmic',
-          title: {
-            text: xAxisTitle
-          }
-        },
-        yAxis: {
-          type: yAxisType as 'linear' | 'logarithmic',
-          title: {
-            text: yAxisTitle
-          }
-        },
-        legend: {
-          enabled: showLegend
-        },
-        tooltip: {
-          headerFormat: '',
-          pointFormat: '<span style="color:{point.color}">\u25cf</span> ' +
-            '{point.name}<br/>' +
-            `${xAxisTitle}: {point.x}<br/>` +
-            `${yAxisTitle}: {point.y}<br/>` +
-            `${zField ? zField : ''}: {point.z}<br/>` 
-        },
-        plotOptions: {
-          series: {
-            dataLabels: {
-              enabled: true,
-              format: '{point.name}'
-            }
-          }
-        },
-        series: seriesOptions,
-        credits: {
-          enabled: false
-        }
-      };
-
-      const chart = Highcharts.chart(chartContainerRef.current, options);
-
-      // Handle dropdown selection to switch between x/y and x_1/y_1
-      const toggleSwitch = document.getElementById('coordinateToggle');
-      toggleSwitch?.addEventListener('change', function () {
-        setTimeout(() => {
-          const isChecked = (toggleSwitch as HTMLInputElement).checked;
-      
-          chart.series.forEach((series, seriesIndex) => {
-            series.data.forEach((point, pointIndex) => {
-              const original = originalData[seriesIndex].data[pointIndex];
-      
-              point.update(
-                {
-                  x: isChecked ? original.x_1 : original.x,
-                  y: isChecked ? original.y_1 : original.y,
-                },
-                false, // Do not redraw immediately for each point
-                true // Enable animation for each point
-              );
-            });
-          });
-      
-          // Redraw the chart after all points are updated
-          chart.redraw();
-        }, 150);
-      });
-      
-      
-      
-      
-      
-    }
-  }, [seriesData, xField, xAltField, yField, yAltField, zField, 
-    nameField, groupField, xAxisType, yAxisType, showLegend, 
-    title, subtitle, xAxisTitle, yAxisTitle, width, height]);
-
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-        <div className="d-flex align-items-center mb-3" style={{ padding: '10px' }}>
-          <span className="me-3 text-muted small">{toggleOptions[0]}</span>
-          <div className="form-check form-switch">
-            <input
-              id="coordinateToggle"
-              className="form-check-input"
-              type="checkbox"
-            />
-          </div>
-          <span className="ms-3 text-muted small">{toggleOptions[1]}</span>
-        </div>
-        <div
-          ref={chartContainerRef}
-          style={{
-            flex: 1, // Makes the chart take up the remaining space
-            overflow: 'hidden', // Prevents scrollbars
-          }}
-        ></div>
-      </div>
-    );
-};
+    // Retool states for user-defined data and field mappings
+    const [seriesData, setSeriesData] = Retool.useStateArray({ name: 'seriesData' });
+    const [xField, setXField] = Retool.useStateString({ name: 'xField' });
+    const [xAltField, setXAltField] = Retool.useStateString({ name: 'xAltField' });
+    const [yField, setYField] = Retool.useStateString({ name: 'yField' });
+    const [yAltField, setYAltField] = Retool.useStateString({ name: 'yAltField' });
+    const [zField, setZField] = Retool.useStateString({ name: 'zField' });
+    const [nameField, setNameField] = Retool.useStateString({ name: 'nameField' });
+    const [groupField, setGroupField] = Retool.useStateArray({ name: 'groupField' });
+    const [xAxisType, setXAxisType] = Retool.useStateString({ name: 'xAxisType' });
+    const [yAxisType, setYAxisType] = Retool.useStateString({ name: 'yAxisType' });
+    const [showLegend, setShowLegend] = Retool.useStateBoolean({ name: 'showLegend' });
+    const [toggleOptions, setToggleOptions] = Retool.useStateArray({ name: 'toggleOptions' });
+    const [colors, setColors] = Retool.useStateArray({ name: 'colors' });
+  
+    const [title, setTitle] = Retool.useStateString({ name: 'title' });
+    const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
+    const [xAxisTitle, setXAxisTitle] = Retool.useStateString({ name: 'xAxisTitle' });
+    const [yAxisTitle, setYAxisTitle] = Retool.useStateString({ name: 'yAxisTitle' });
+  
+    const [width, setWidth] = Retool.useStateNumber({ name: 'width' });
+    const [height, setHeight] = Retool.useStateNumber({ name: 'height' });
+  
+    // Memoize the chart options
+    const getChartOptions = useCallback((): Highcharts.Options => {
+      if (!seriesData || !xField || !yField || !groupField) {
+        return {}; // Return empty options if essential data is missing
+      }
+  
+      const colorMap: Record<string, string> = {};
+      groupField.forEach((group, index) => {
+        if (!colorMap[group] && colors.length > 0) {
+          colorMap[group] = colors[index % colors.length]; // Assign a color from the colors array
+        }
+      });
+  
+      // Group the data using the groupField array
+      const groupedData = seriesData.reduce((acc: Record<string, any[]>, point: any, index: number) => {
+        const group = groupField[index] || 'Ungrouped';
+        if (!acc[group]) {
+          acc[group] = [];
+        }
+        acc[group].push({
+          x: point[xField],
+          x_1: point[xAltField],
+          y: point[yField],
+          y_1: point[yAltField],
+          z: zField ? point[zField] : undefined,
+          name: nameField ? point[nameField] : undefined,
+        });
+        return acc;
+      }, {});
+  
+      const seriesOptions = Object.keys(groupedData).map(group => ({
+        name: group,
+        data: groupedData[group],
+        color: colorMap[group], // Assign color based on group name
+        animation: {
+          duration: 1000,
+          easing: 'easeOutBounce'
+        },
+        dataLabels: {
+          enabled: true,
+          formatter: function (this: Highcharts.PointLabelObject) {
+            return this.point.name;
+          },
+          style: {
+            color: '#000000', // Adjust label color if needed
+            textOutline: 'none'
+          }
+        }
+      }));
+  
+      return {
+        chart: {
+          type: 'bubble',
+          width: width,
+          height: height,
+          plotBorderWidth: 1,
+          zooming: {
+            type: 'xy'
+          },
+          reflow: true,
+          backgroundColor: 'transparent'
+        },
+        title: {
+          text: title
+        },
+        subtitle: {
+          text: subtitle
+        },
+        xAxis: {
+          gridLineWidth: 1,
+          type: xAxisType as 'linear' | 'logarithmic',
+          title: {
+            text: xAxisTitle
+          }
+        },
+        yAxis: {
+          type: yAxisType as 'linear' | 'logarithmic',
+          title: {
+            text: yAxisTitle
+          }
+        },
+        legend: {
+          enabled: showLegend
+        },
+        tooltip: {
+          headerFormat: '',
+          pointFormat: '<span style="color:{point.color}">\u25cf</span> ' +
+            '{point.name}<br/>' +
+            `${xAxisTitle}: {point.x}<br/>` +
+            `${yAxisTitle}: {point.y}<br/>` +
+            `${zField ? zField : ''}: {point.z}<br/>`
+        },
+        plotOptions: {
+          series: {
+            dataLabels: {
+              enabled: true,
+              format: '{point.name}'
+            }
+          }
+        },
+        series: seriesOptions as Highcharts.SeriesOptionsType[], // Cast to Highcharts.SeriesOptionsType[]
+        credits: {
+          enabled: false
+        }
+      };
+    }, [
+      seriesData, xField, xAltField, yField, yAltField, zField,
+      nameField, groupField, xAxisType, yAxisType, showLegend,
+      title, subtitle, xAxisTitle, yAxisTitle, width, height,
+      JSON.stringify(colors) // Stringify colors to ensure deep comparison
+    ]);
+  
+    useEffect(() => {
+      if (!chartContainerRef.current) return;
+  
+      const options = getChartOptions();
+  
+      // If there are no series data, destroy the chart and return
+      if (!options.series || options.series.length === 0) {
+        if (chartRef.current) {
+          chartRef.current.destroy();
+          chartRef.current = null;
+        }
+        return;
+      }
+  
+      if (!chartRef.current) {
+        // Create new chart if it doesn't exist
+        chartRef.current = Highcharts.chart(chartContainerRef.current, options);
+      } else {
+        // Update existing chart
+        chartRef.current.update(options, true);
+      }
+  
+      // Add event listener for the toggle switch only once when the chart is created
+      const toggleSwitch = document.getElementById('coordinateToggle');
+      if (toggleSwitch && chartRef.current) {
+        const currentChart = chartRef.current;
+        const originalData = options.series!.map(series => ({ // Store initial data for toggling
+          ...series,
+          data: series.data?.map(point => ({ ...(point as Highcharts.PointOptionsObject) })) || []
+        }));
+  
+        const handleToggleChange = () => {
+          setTimeout(() => {
+            const isChecked = (toggleSwitch as HTMLInputElement).checked;
+  
+            currentChart.series.forEach((series, seriesIndex) => {
+              series.data.forEach((point, pointIndex) => {
+                const originalPoint = originalData[seriesIndex].data[pointIndex];
+                point.update(
+                  {
+                    x: isChecked ? originalPoint.x_1 : originalPoint.x,
+                    y: isChecked ? originalPoint.y_1 : originalPoint.y,
+                  },
+                  false, // Do not redraw immediately for each point
+                  true // Enable animation for each point
+                );
+              });
+            });
+            currentChart.redraw();
+          }, 150);
+        };
+  
+        toggleSwitch.addEventListener('change', handleToggleChange);
+  
+        // Cleanup event listener
+        return () => {
+          toggleSwitch.removeEventListener('change', handleToggleChange);
+          if (chartRef.current) {
+            chartRef.current.destroy();
+            chartRef.current = null;
+          }
+        };
+      }
+  
+      // Cleanup function for when component unmounts or dependencies change significantly
+      return () => {
+        if (chartRef.current) {
+          chartRef.current.destroy();
+          chartRef.current = null;
+        }
+      };
+    }, [JSON.stringify(getChartOptions())]); // Re-run effect only when memoized options object changes, which includes data changes
+  
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+          <div className="d-flex align-items-center mb-3" style={{ padding: '10px' }}>
+            <span className="me-3 text-muted small">{toggleOptions[0]}</span>
+            <div className="form-check form-switch">
+              <input
+                id="coordinateToggle"
+                className="form-check-input"
+                type="checkbox"
+              />
+            </div>
+            <span className="ms-3 text-muted small">{toggleOptions[1]}</span>
+          </div>
+          <div
+            ref={chartContainerRef}
+            style={{
+              flex: 1, // Makes the chart take up the remaining space
+              overflow: 'hidden', // Prevents scrollbars
+            }}
+          ></div>
+        </div>
+      );
+  };
 
 export const SLineChart: FC = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -2400,104 +2443,133 @@ export const NGFSQuadrant: FC = () => {
 }
 
 export const MirroredBarChart: FC = () => {
-  const chartContainerRef = useRef<HTMLDivElement>(null);
-
-  // Retool states
-  const [categories, setCategories] = Retool.useStateArray({ name: 'categories' });
-  const [leftData, setLeftData] = Retool.useStateArray({ name: 'leftData' });
-  const [rightData, setRightData] = Retool.useStateArray({ name: 'rightData' });
-  const [leftSeriesName, setLeftSeriesName] = Retool.useStateString({ name: 'leftSeriesName' });
-  const [rightSeriesName, setRightSeriesName] = Retool.useStateString({ name: 'rightSeriesName' });
-  const [title, setTitle] = Retool.useStateString({ name: 'title' });
-  const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
-  const [xAxisLabel, setXAxisLabel] = Retool.useStateString({ name: 'xAxisLabel' });
-  const [yAxisLabel, setYAxisLabel] = Retool.useStateString({ name: 'yAxisLabel' });
-  const [width, setWidth] = Retool.useStateNumber({ name: 'width' });
-  const [height, setHeight] = Retool.useStateNumber({ name: 'height' });
-  const [colors, setColors] = Retool.useStateArray({ name: 'colors' });
-
-  useEffect(() => {
-    if (chartContainerRef.current) {
-      // Add custom template helper for absolute values
-      Highcharts.Templating.helpers.abs = (value: number) => Math.abs(value);
-
-      const options: Highcharts.Options = {
-        chart: {
-          type: 'bar',
-          width,
-          height
-        },
-        title: {
-          text: title
-        },
-        subtitle: {
-          text: subtitle
-        },
-        xAxis: [{
-          categories,
-          reversed: false,
-          title: {
-            text: xAxisLabel || null
-          },
-          labels: {
-            step: 1
-          },
-        }, { // mirror axis on right side
-          opposite: true,
-          reversed: false,
-          categories,
-          linkedTo: 0,
-          labels: {
-            step: 1
-          },
-        }],
-        yAxis: {
-          title: {
-            text: yAxisLabel || null
-          },
-          labels: {
-            formatter: function() {
-              return Math.abs(this.value) + '%';
-            }
-          }
-        },
-        plotOptions: {
-          series: {
-            stacking: 'normal',
-            borderRadius: '50%'
-          }
-        },
-        tooltip: {
-          formatter: function() {
-            return `<b>${this.series.name}, ${xAxisLabel} : ${this.point.category}</b><br/>` +
-                   `Value: ${Math.abs(this.point.y?.valueOf() as number).toFixed(2)}%`;
-          }
-        },
-        series: [{
-          name: leftSeriesName,
-          data: leftData.map(value => value * -1), // Negative values for left side
-          color: colors?.[0]
-        }, {
-          name: rightSeriesName,
-          data: rightData, // Positive values for right side
-          color: colors?.[1]
-        }],
-        credits: {
-          enabled: false
-        }
-      };
-
-      Highcharts.chart(chartContainerRef.current, options);
-    }
-  }, [
-    categories, leftData, rightData, 
-    leftSeriesName, rightSeriesName,
-    title, subtitle, xAxisLabel, yAxisLabel,
-    width, height, colors
-  ]);
-
-  return <div ref={chartContainerRef} />;
-};
+    const chartContainerRef = useRef<HTMLDivElement>(null);
+    const chartRef = useRef<Highcharts.Chart | null>(null); // Store chart instance
+  
+    // Retool states
+    const [categories, setCategories] = Retool.useStateArray({ name: 'categories' });
+    const [leftData, setLeftData] = Retool.useStateArray({ name: 'leftData' });
+    const [rightData, setRightData] = Retool.useStateArray({ name: 'rightData' });
+    const [leftSeriesName, setLeftSeriesName] = Retool.useStateString({ name: 'leftSeriesName' });
+    const [rightSeriesName, setRightSeriesName] = Retool.useStateString({ name: 'rightSeriesName' });
+    const [title, setTitle] = Retool.useStateString({ name: 'title' });
+    const [subtitle, setSubtitle] = Retool.useStateString({ name: 'subtitle' });
+    const [xAxisLabel, setXAxisLabel] = Retool.useStateString({ name: 'xAxisLabel' });
+    const [yAxisLabel, setYAxisLabel] = Retool.useStateString({ name: 'yAxisLabel' });
+    const [width, setWidth] = Retool.useStateNumber({ name: 'width' });
+    const [height, setHeight] = Retool.useStateNumber({ name: 'height' });
+    const [colors, setColors] = Retool.useStateArray({ name: 'colors' });
+  
+    // Memoize chart options
+    const getChartOptions = useCallback((): Highcharts.Options => {
+      // Add custom template helper for absolute values
+      // This needs to be outside the options object or handled globally by Highcharts.
+      // For a per-chart solution, it's generally done once during module import or chart creation if needed.
+      // Highcharts.Templating.helpers.abs will be globally defined here, so only call once or ensure idempotency.
+      if (!Highcharts.Templating.helpers.abs) {
+        Highcharts.Templating.helpers.abs = (value: number) => Math.abs(value);
+      }
+  
+      return {
+        chart: {
+          type: 'bar',
+          width,
+          height,
+          reflow: true,
+          backgroundColor: 'transparent'
+        },
+        title: {
+          text: title
+        },
+        subtitle: {
+          text: subtitle
+        },
+        xAxis: [{
+          categories,
+          reversed: false,
+          title: {
+            text: xAxisLabel || null
+          },
+          labels: {
+            step: 1
+          },
+        }, { // mirror axis on right side
+          opposite: true,
+          reversed: false,
+          categories,
+          linkedTo: 0,
+          labels: {
+            step: 1
+          },
+        }],
+        yAxis: {
+          title: {
+            text: yAxisLabel || null
+          },
+          labels: {
+            formatter: function(this: Highcharts.AxisLabelsFormatterContextObject) {
+              return Math.abs(this.value as number) + '%';
+            }
+          }
+        },
+        plotOptions: {
+          series: {
+            stacking: 'normal',
+            borderRadius: 0 // Keep as 0 for classic bar charts
+          }
+        },
+        tooltip: {
+          formatter: function(this: Highcharts.TooltipFormatterContextObject) {
+            return `<b>${this.series.name}, ${xAxisLabel} : ${this.point.category}</b><br/>` +
+                    `Value: ${Math.abs(this.point.y?.valueOf() as number).toFixed(2)}%`;
+            }
+        },
+        series: [{
+          name: leftSeriesName,
+          data: leftData.map(value => Number(value) * -1), // Negative values for left side
+          color: colors?.[0],
+          type: 'bar' // Explicitly set type
+        }, {
+          name: rightSeriesName,
+          data: rightData.map(Number), // Positive values for right side
+          color: colors?.[1],
+          type: 'bar' // Explicitly set type
+        }],
+        credits: {
+          enabled: false
+        }
+      };
+    }, [
+      JSON.stringify(categories), JSON.stringify(leftData), JSON.stringify(rightData),
+      leftSeriesName, rightSeriesName,
+      title, subtitle, xAxisLabel, yAxisLabel,
+      width, height, JSON.stringify(colors)
+    ]);
+  
+    useEffect(() => {
+      if (!chartContainerRef.current) return;
+  
+      const options = getChartOptions();
+  
+      if (!chartRef.current) {
+        // Create new chart if it doesn't exist
+        chartRef.current = Highcharts.chart(chartContainerRef.current, options);
+      } else {
+        // Update existing chart
+        chartRef.current.update(options, true);
+      }
+  
+      // Cleanup function
+      return () => {
+        if (chartRef.current) {
+          chartRef.current.destroy();
+          chartRef.current = null;
+        }
+      };
+    }, [JSON.stringify(getChartOptions())]); // Re-run effect only when memoized options object changes
+  
+    return <div ref={chartContainerRef} />;
+  };
 
 export const VariablePieChart: FC = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
