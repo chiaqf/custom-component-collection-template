@@ -20,9 +20,6 @@ HighchartsMore(Highcharts) // Initialize highcharts-more module for bubble chart
 AnnotationsModule(Highcharts) // Initialize annotations module
 HighchartsVariablePie(Highcharts)
 HighchartsBullet(Highcharts)
-Boost(Highcharts)
-
-import Boost from 'highcharts/modules/boost'
 
 export { BubbleChart } from './BubbleChart'
 export { PieChart } from './PieChart'
