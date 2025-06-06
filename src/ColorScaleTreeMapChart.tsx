@@ -1,19 +1,19 @@
 import Highcharts from 'highcharts'
-import treemap from 'highcharts/modules/treemap'
-import data from 'highcharts/modules/data'
-import colorAxis from 'highcharts/modules/coloraxis'
+import 'highcharts/modules/treemap'
+import 'highcharts/modules/data'
+import 'highcharts/modules/coloraxis'
 // import exporting from 'highcharts/modules/exporting'
-import accessibility from 'highcharts/modules/accessibility'
-import HighchartsMore from 'highcharts/highcharts-more'
+import 'highcharts/modules/accessibility'
+import 'highcharts/modules/treemap'
 
 import { type FC, useEffect, useRef, useCallback, useState } from 'react'
 
 // Initialize Highcharts modules once when this file is imported
-treemap(Highcharts)
-data(Highcharts)
-colorAxis(Highcharts)
-// exporting(Highcharts)
-accessibility(Highcharts)
+// treemap(Highcharts)
+// data(Highcharts)
+// colorAxis(Highcharts)
+// // exporting(Highcharts)
+// accessibility(Highcharts)
 
 // Highcharts event plugin for custom data label logic.
 // Placed outside the component to ensure it's registered only once.

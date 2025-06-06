@@ -1,25 +1,25 @@
 import 'bootstrap/dist/css/bootstrap.min.css'
 import { type FC, useEffect, useRef, useState, useCallback } from 'react'
-import Highcharts from 'highcharts'
-import HighchartsMore from 'highcharts/highcharts-more'
-import AnnotationsModule from 'highcharts/modules/annotations'
-import HighchartsTreemap from 'highcharts/modules/treemap'
-import HighchartsHeatmap from 'highcharts/modules/heatmap'
-import HighchartsSunburst from 'highcharts/modules/sunburst'
-import HighchartsVariablePie from 'highcharts/modules/variable-pie'
-import HighchartsBullet from 'highcharts/modules/bullet'
-import SolidGauge from 'highcharts/modules/solid-gauge'
-import HighchartsStock from 'highcharts/modules/stock'
+// import Highcharts from 'highcharts'
+import 'highcharts/highcharts-more'
+import 'highcharts/modules/annotations'
+// import 'highcharts/modules/treemap'
+// import 'highcharts/modules/heatmap'
+// import 'highcharts/modules/sunburst'
+// import 'highcharts/modules/variable-pie'
+// import 'highcharts/modules/bullet'
+// import 'highcharts/modules/solid-gauge'
+// import 'highcharts/modules/stock'
 
-HighchartsStock(Highcharts)
-SolidGauge(Highcharts)
-HighchartsSunburst(Highcharts) // Initialize sunburst module
-HighchartsHeatmap(Highcharts)
-HighchartsTreemap(Highcharts)
-HighchartsMore(Highcharts) // Initialize highcharts-more module for bubble charts
-AnnotationsModule(Highcharts) // Initialize annotations module
-HighchartsVariablePie(Highcharts)
-HighchartsBullet(Highcharts)
+// HighchartsStock(Highcharts)
+// SolidGauge(Highcharts)
+// HighchartsSunburst(Highcharts) // Initialize sunburst module
+// HighchartsHeatmap(Highcharts)
+// HighchartsTreemap(Highcharts)
+// HighchartsMore(Highcharts) // Initialize highcharts-more module for bubble charts
+// AnnotationsModule(Highcharts) // Initialize annotations module
+// HighchartsVariablePie(Highcharts)
+// HighchartsBullet(Highcharts)
 
 export { BubbleChart } from './BubbleChart'
 export { PieChart } from './PieChart'

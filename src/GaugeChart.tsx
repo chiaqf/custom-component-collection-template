@@ -1,8 +1,8 @@
 import Highcharts from 'highcharts'
 import { Retool } from '@tryretool/custom-component-support'
 import { type FC, useEffect, useRef, useCallback } from 'react'
-import HighchartsMore from 'highcharts/highcharts-more'
-HighchartsMore(Highcharts)
+import 'highcharts/highcharts-more'
+import 'highcharts/modules/solid-gauge'
 
 export const GaugeChart: FC = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
