@@ -80,7 +80,6 @@ export const BarChart: FC = () => {
       chart: {
         type: layout,
         reflow: true,
-        backgroundColor: 'transparent',
         width: width,
         height: height,
         marginBottom: marginBottom || undefined,

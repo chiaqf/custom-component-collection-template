@@ -1,7 +1,6 @@
 import Highcharts from 'highcharts'
 import { Retool } from '@tryretool/custom-component-support'
 import { type FC, useEffect, useRef, useCallback } from 'react'
-
 import 'highcharts/modules/variable-pie'
 
 export const VariablePieChart: FC = () => {
@@ -45,7 +44,7 @@ export const VariablePieChart: FC = () => {
     initialValue: 5
   })
 
-  const data = (labels || []).map((label, index) => ({
+  const inputData = (labels || []).map((label, index) => ({
     name: label,
     y: values[index], // Size of slice
     z: zValues[index], // Variable dimension
@@ -57,7 +56,6 @@ export const VariablePieChart: FC = () => {
       chart: {
         type: 'variablepie',
         reflow: true,
-        backgroundColor: 'transparent',
         width: width,
         height: height
       },
@@ -80,13 +78,12 @@ export const VariablePieChart: FC = () => {
       series: [
         {
           type: 'variablepie',
-          // minPointSize: minPointSize,
+          minPointSize: minPointSize,
           innerSize: innerSize,
           zMin: 0,
           zMax: 100,
-          name: 'Variable Pie Series',
           borderRadius: borderRadius,
-          data: data,
+          data: inputData,
           dataLabels: {
             enabled: true,
             filter: {
@@ -95,7 +92,6 @@ export const VariablePieChart: FC = () => {
               value: showLabelThreshold
             },
             format: `{point.name}, {point.percentage:.1f}%`,
-            align: 'center',
             verticalAlign: 'middle'
           }
         }

@@ -141,17 +141,6 @@ export const DataOnlyTreemapChart: FC = () => {
               borderWidth: 3,
               // @ts-ignore - levelIsConstant exists on treemap levels
               levelIsConstant: false
-            },
-            {
-              level: 1,
-              dataLabels: {
-                formatter: function () {
-                  return `<b>${this.point.name}</b><br>${this.point.percent}%`
-                },
-                style: {
-                  fontSize: '14px'
-                }
-              }
             }
           ]
         }

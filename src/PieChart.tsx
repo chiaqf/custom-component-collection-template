@@ -30,7 +30,6 @@ export const PieChart: FC = () => {
       chart: {
         type: 'pie',
         reflow: true,
-        backgroundColor: 'transparent',
         width: width,
         height: height
       },
