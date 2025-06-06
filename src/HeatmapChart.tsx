@@ -1,7 +1,7 @@
 import Highcharts from 'highcharts'
 import { Retool } from '@tryretool/custom-component-support'
 import { type FC, useEffect, useRef, useCallback } from 'react'
-import 'highcharts/highcharts-more'
+
 import 'highcharts/modules/heatmap'
 
 export const HeatmapChart: FC = () => {

@@ -1,8 +1,8 @@
 import 'bootstrap/dist/css/bootstrap.min.css'
 import { type FC, useEffect, useRef, useState, useCallback } from 'react'
 // import Highcharts from 'highcharts'
-import 'highcharts/highcharts-more'
-import 'highcharts/modules/annotations'
+// 
+// import 'highcharts/modules/annotations'
 // import 'highcharts/modules/treemap'
 // import 'highcharts/modules/heatmap'
 // import 'highcharts/modules/sunburst'

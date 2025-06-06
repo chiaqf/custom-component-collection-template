@@ -1,7 +1,7 @@
 import Highcharts from 'highcharts'
 import { Retool } from '@tryretool/custom-component-support'
 import { type FC, useEffect, useRef } from 'react'
-import 'highcharts/highcharts-more'
+
 
 export const BubbleChart: FC = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
