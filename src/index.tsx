@@ -43,6 +43,8 @@ export { TreemapChart } from './TreemapChart'
 export { DataOnlyTreemapChart } from './DataOnlyTreemapChart'
 export { BulletChart } from './BulletChart'
 export { MirroredBarChart } from './MirroredBarChart'
+export { ColorScaleTreeMapChart } from './ColorScaleTreeMapChart'
+
 
 // export const SplitPackedBubbleChart: FC = () => {
 //   const chartContainerRef = useRef<HTMLDivElement>(null)
