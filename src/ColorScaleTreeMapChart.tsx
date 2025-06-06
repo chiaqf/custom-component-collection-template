@@ -2,7 +2,7 @@ import Highcharts from 'highcharts'
 import treemap from 'highcharts/modules/treemap'
 import data from 'highcharts/modules/data'
 import colorAxis from 'highcharts/modules/coloraxis'
-import exporting from 'highcharts/modules/exporting'
+// import exporting from 'highcharts/modules/exporting'
 import accessibility from 'highcharts/modules/accessibility'
 import HighchartsMore from 'highcharts/highcharts-more'
 
@@ -12,7 +12,7 @@ import { type FC, useEffect, useRef, useCallback, useState } from 'react'
 treemap(Highcharts)
 data(Highcharts)
 colorAxis(Highcharts)
-exporting(Highcharts)
+// exporting(Highcharts)
 accessibility(Highcharts)
 
 // Highcharts event plugin for custom data label logic.
@@ -341,15 +341,15 @@ export const ColorScaleTreeMapChart: FC = () => {
           legend: {
               itemStyle: { color: 'white' },
           },
-          exporting: {
-              sourceWidth: 1200,
-              sourceHeight: 800,
-              buttons: {
-                  contextButton: {
-                      menuItems: ['downloadPNG', 'downloadJPEG', 'downloadPDF', 'downloadSVG'],
-                  }
-              }
-          },
+          // exporting: {
+          //     sourceWidth: 1200,
+          //     sourceHeight: 800,
+          //     buttons: {
+          //         contextButton: {
+          //             menuItems: ['downloadPNG', 'downloadJPEG', 'downloadPDF', 'downloadSVG'],
+          //         }
+          //     }
+          // },
           navigation: {
               buttonOptions: {
                   theme: {
