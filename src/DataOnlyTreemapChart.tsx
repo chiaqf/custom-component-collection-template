@@ -1,6 +1,6 @@
 import Highcharts from 'highcharts'
 import { Retool } from '@tryretool/custom-component-support'
-import { type FC, useEffect, useRef, useCallback } from 'react'
+import { type FC, useEffect, useState, useRef, useCallback } from 'react'
 
 import 'highcharts/modules/treemap'
 
@@ -120,6 +120,7 @@ export const DataOnlyTreemapChart: FC = () => {
       series: [
         {
           type: 'treemap',
+          name: 'All',
           layoutAlgorithm: 'squarified',
           allowDrillToNode: true,
           clip: false,
