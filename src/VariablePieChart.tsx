@@ -43,7 +43,18 @@ export const VariablePieChart: FC = () => {
     name: 'borderRadius',
     initialValue: 5
   })
-
+  const [showLegend, setShowLegend] = Retool.useStateBoolean({
+    name: 'showLegend',
+    initialValue: false
+  })
+  const [showDataLabel, setShowDataLabel] = Retool.useStateBoolean({
+    name: 'showDataLabel',
+    initialValue: true
+  })
+  const [legendLocation, setLegendLocation] = Retool.useStateBoolean({
+    name: 'legendLocation',
+    description: 'bottom|top|left|right'
+  })
   const inputData = (labels || []).map((label, index) => ({
     name: label,
     y: values[index], // Size of slice
@@ -62,7 +73,7 @@ export const VariablePieChart: FC = () => {
       tooltip: {
         headerFormat: '',
         pointFormat:
-          '<span style="color:{point.color}">\u25CF</span> <b>{point.name}</b><br/>' +
+          '<span style="color:{point.color}">\u25CF</span> <b>{point.name}</b> ({point.percentage:.2f} %)<br/>' +
           `${yLabel}: <b>{point.y}</b><br/>` +
           `${zLabel}: <b>{point.z}</b><br/>`
       },
@@ -75,17 +86,32 @@ export const VariablePieChart: FC = () => {
       credits: {
         enabled: false
       },
+      legend: {
+        align: 'right',
+        verticalAlign: 'middle',
+        layout: 'vertical'
+      },
+      plotOptions: {
+        variablepie: {
+            allowPointSelect: true,
+            cursor: 'pointer',
+            dataLabels: {
+                enabled: showDataLabel
+            },
+            showInLegend: showLegend
+        }
+      },
       series: [
         {
           type: 'variablepie',
           minPointSize: minPointSize,
           innerSize: innerSize,
-          zMin: 0,
-          zMax: 100,
           borderRadius: borderRadius,
           data: inputData,
+          // zMin: 10,
+          // zMax: 1000000,
           dataLabels: {
-            enabled: true,
+            enabled: showDataLabel,
             filter: {
               property: 'percentage',
               operator: '>',

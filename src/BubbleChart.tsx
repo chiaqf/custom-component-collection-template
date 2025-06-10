@@ -67,6 +67,19 @@ export const BubbleChart: FC = () => {
   const [minSize, setMinSize] = Retool.useStateNumber({ name: 'minSize' })
   const [maxSize, setMaxSize] = Retool.useStateNumber({ name: 'maxSize' })
 
+  // --- NEW: Calculate x-axis min and max before useEffect ---
+  // 1. Combine data points and plot line values into a single array.
+  // 2. Filter for valid numbers to avoid errors with Math.min/max.
+  const allXDataPoints = [
+    ...(xValues || []),
+    ...(plotLineXValues || [])
+  ].filter((v): v is number => typeof v === 'number' && isFinite(v))
+
+  // 3. Determine the min and max. If no data, they will be null.
+  const xMin = allXDataPoints.length > 0 ? Math.min(...allXDataPoints) : null
+  const xMax = allXDataPoints.length > 0 ? Math.max(...allXDataPoints) : null
+  // --- END NEW ---
+
   useEffect(() => {
     if (chartContainerRef.current) {
       // Group the data by unique group values
@@ -134,6 +147,10 @@ export const BubbleChart: FC = () => {
           startOnTick: true,
           endOnTick: true,
           showLastLabel: true,
+          // --- NEW: Set the calculated min and max for the x-axis ---
+          min: xMin,
+          max: xMax,
+          // --- END NEW ---
           plotLines: plotLineXValues.map((xValue, index) => ({
             value: xValue, // x-coordinate where the line is drawn
             color: '#000000', // Line color (customize as needed)
@@ -213,6 +230,8 @@ export const BubbleChart: FC = () => {
         chartRef.current = null
       }
     }
+    // --- FIX: Added plotLine values to the dependency array ---
+    // This ensures the chart updates when plot lines are changed.
   }, [
     JSON.stringify(xValues),
     JSON.stringify(yValues),
@@ -220,6 +239,8 @@ export const BubbleChart: FC = () => {
     JSON.stringify(labels),
     JSON.stringify(colors),
     JSON.stringify(groups),
+    JSON.stringify(plotLineXValues),
+    JSON.stringify(plotLineLabels),
     title,
     subtitle,
     width,
