@@ -87,9 +87,10 @@ export const VariablePieChart: FC = () => {
         enabled: false
       },
       legend: {
-        align: 'right',
-        verticalAlign: 'middle',
-        layout: 'vertical'
+        align: 'center',
+        verticalAlign: 'bottom',
+        layout: 'vertical',
+        maxHeight: 80,
       },
       plotOptions: {
         variablepie: {

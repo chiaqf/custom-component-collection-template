@@ -19,11 +19,11 @@ export const PackedBubbleChart: FC = () => {
     name: 'groups' // Array of group names, same length as labels and values
   })
 
-  const [minBubbleSize, setMinBubbleSize] = Retool.useStateNumber({
+  const [minBubbleSize, setMinBubbleSize] = Retool.useStateString({
     name: 'minBubbleSize'
   })
 
-  const [maxBubbleSize, setMaxBubbleSize] = Retool.useStateNumber({
+  const [maxBubbleSize, setMaxBubbleSize] = Retool.useStateString({
     name: 'maxBubbleSize'
   })
 
@@ -162,8 +162,8 @@ export const PackedBubbleChart: FC = () => {
       },
       series: prepareSeriesData().map((s) => ({
         ...s,
-        minSize: Number(minBubbleSize || 0),
-        maxSize: Number(maxBubbleSize || 0)
+        minSize: minBubbleSize || 0,
+        maxSize: maxBubbleSize || 0
       }))
     }),
     [

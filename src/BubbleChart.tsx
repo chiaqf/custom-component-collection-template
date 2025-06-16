@@ -61,11 +61,18 @@ export const BubbleChart: FC = () => {
   const [plotLineLabels, setPlotLineLabels] = Retool.useStateArray({
     name: 'plotLineLabels'
   })
+  const [plotLineYValues, setPlotLineYValues] = Retool.useStateArray({
+    name: 'plotLineYValues'
+  })
+  const [plotLineYLabels, setPlotLineYLabels] = Retool.useStateArray({
+    name: 'plotLineYLabels'
+  })
   const [categories, setCategories] = Retool.useStateArray({
     name: 'Categories'
   })
   const [minSize, setMinSize] = Retool.useStateNumber({ name: 'minSize' })
   const [maxSize, setMaxSize] = Retool.useStateNumber({ name: 'maxSize' })
+  const [areaHighLight, setAreaHighLight] = Retool.useStateObject({ name: 'areaHighlight', description: "example {x1: 0, x2: 0.5, y1: 0, y2: 0.5, color:'#ea9999'}"})
 
   // --- NEW: Calculate x-axis min and max before useEffect ---
   // 1. Combine data points and plot line values into a single array.
@@ -175,7 +182,22 @@ export const BubbleChart: FC = () => {
           categories: yAxisType === 'category' ? categories : undefined,
           gridLineWidth: 1,
           startOnTick: yAxisType !== 'category',
-          endOnTick: yAxisType !== 'category'
+          endOnTick: yAxisType !== 'category',
+          plotLines: plotLineYValues.map((yValue, index) => ({
+            value: yValue, // x-coordinate where the line is drawn
+            color: '#000000', // Line color (customize as needed)
+            width: 1, // Line width
+            dashStyle: 'Dash',
+            zIndex: 1, // Ensure the line appears above other chart elements
+            label: {
+              text: plotLineYLabels[index] || `Line ${index + 1}`, // Use provided label or default
+              align: 'left', // Label alignment: 'left', 'center', or 'right'
+              verticalAlign: 'top',
+              style: {
+                color: '#000000'
+              }
+            }
+          })),
         },
         tooltip: {
           headerFormat: '',
