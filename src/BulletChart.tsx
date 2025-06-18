@@ -27,6 +27,11 @@ export const BulletChart: FC = () => {
   const [marginLeft, setMarginLeft] = Retool.useStateNumber({
     name: 'marginLeft'
   })
+  const [backgroundColor, setBackgroundColor] = Retool.useStateString({
+    name: 'backgroundColor',
+    description: '#EDE8D0',
+    initialValue: '#EDE8D0'
+  })
 
   useEffect(() => {
     if (chartContainerRef.current) {
@@ -48,7 +53,7 @@ export const BulletChart: FC = () => {
           enabled: false
         },
         xAxis: {
-          categories: [xAxisLabel]
+          categories: [xAxisLabel],
         },
         yAxis: {
           gridLineWidth: 1,
@@ -56,7 +61,7 @@ export const BulletChart: FC = () => {
             {
               from: -9e9,
               to: 9e9,
-              color: '#bbb'
+              color: backgroundColor
             }
           ],
           title: null,
@@ -70,8 +75,24 @@ export const BulletChart: FC = () => {
             targetOptions: {
               width: '500%',
               color: targetColor
+            },
+            dataLabels: {
+              enabled: true,
+              align: 'right',
+              x: 80,
+              y: -1,
+              style: {
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  color: '#000'
+              },
+              formatter: function() {
+                  const percentage = ((this.y / this.point.target) * 100).toFixed(1);
+                  const color = percentage > 80 ? 'red' : '#000';
+                  return `<span style="color: ${color};">${percentage}%</span>`;
+              }
             }
-          }
+          },
         },
         series: [
           {

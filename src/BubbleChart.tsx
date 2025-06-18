@@ -2,29 +2,28 @@ import Highcharts from 'highcharts'
 import { Retool } from '@tryretool/custom-component-support'
 import { type FC, useEffect, useRef } from 'react'
 
-// --- NEW: Reusable helper function to calculate the buffered range ---
+// --- Reusable helper function to calculate the buffered range ---
 const calculateBufferedRange = (min: number | null, max: number | null) => {
   if (min === null || max === null) {
-    return { finalMin: null, finalMax: null };
+    return { finalMin: null, finalMax: null }
   }
 
-  const range = max - min;
-  let buffer;
+  const range = max - min
+  let buffer
 
   if (range === 0) {
     // If there's only one point, create a small artificial buffer
-    buffer = min === 0 ? 1 : Math.abs(min * 0.01);
+    buffer = min === 0 ? 1 : Math.abs(min * 0.01)
   } else {
-    // Otherwise, use 5% of the total range
-    buffer = range * 0.01;
+    // Otherwise, use 1% of the total range
+    buffer = range * 0.01
   }
 
   return {
     finalMin: min - buffer,
     finalMax: max + buffer
-  };
-};
-
+  }
+}
 
 export const BubbleChart: FC = () => {
   const chartContainerRef = useRef<HTMLDivElement>(null)
@@ -36,6 +35,8 @@ export const BubbleChart: FC = () => {
   const [yLabel, setYLabel] = Retool.useStateString({ name: 'yLabel' })
   const [zValues, setZValues] = Retool.useStateArray({ name: 'zValues' })
   const [zLabel, setZLabel] = Retool.useStateString({ name: 'zLabel' })
+  const [dValues, setDValues] = Retool.useStateArray({ name: 'dValues' })
+  const [dLabel, setDLabel] = Retool.useStateString({ name: 'dLabel' })
   const [labels, setLabels] = Retool.useStateArray({ name: 'labels' })
   const [colors, setColors] = Retool.useStateArray({ name: 'colors' })
   const [defaultColor, setDefaultColor] = Retool.useStateString({ name: 'defaultColor' })
@@ -55,30 +56,33 @@ export const BubbleChart: FC = () => {
   const [categories, setCategories] = Retool.useStateArray({ name: 'Categories' })
   const [minSize, setMinSize] = Retool.useStateNumber({ name: 'minSize' })
   const [maxSize, setMaxSize] = Retool.useStateNumber({ name: 'maxSize' })
-  const [areaHighLight, setAreaHighLight] = Retool.useStateObject({ name: 'areaHighlight', description: "example {x1: 0, x2: 0.5, y1: 0, y2: 0.5, color:'#ea9999'}"})
+  const [areaHighLight, setAreaHighLight] = Retool.useStateObject({
+    name: 'areaHighlight',
+    description: "example: { points: [[10, 20], [50, 60], [20, 80]], color: '#ea9999' }"
+  })
 
   // --- Calculate axis min and max ---
-  const allXDataPoints = [
-    ...(xValues || []),
-    ...(plotLineXValues || [])
-  ].filter((v): v is number => typeof v === 'number' && isFinite(v))
+  const allXDataPoints = [...(xValues || []), ...(plotLineXValues || [])].filter(
+    (v): v is number => typeof v === 'number' && isFinite(v)
+  )
   const xMin = allXDataPoints.length > 0 ? Math.min(...allXDataPoints) : null
   const xMax = allXDataPoints.length > 0 ? Math.max(...allXDataPoints) : null
 
-  const allYDataPoints = [
-    ...(yValues || []),
-    ...(plotLineYValues || [])
-  ].filter((v): v is number => typeof v === 'number' && isFinite(v));
-  const yMin = allYDataPoints.length > 0 ? Math.min(...allYDataPoints) : null;
-  const yMax = allYDataPoints.length > 0 ? Math.max(...allYDataPoints) : null;
+  const allYDataPoints = [...(yValues || []), ...(plotLineYValues || [])].filter(
+    (v): v is number => typeof v === 'number' && isFinite(v)
+  )
+  const yMin = allYDataPoints.length > 0 ? Math.min(...allYDataPoints) : null
+  const yMax = allYDataPoints.length > 0 ? Math.max(...allYDataPoints) : null
 
-  // --- MORE CONCISE: Use the helper function for buffering ---
-  const { finalMin: finalXMin, finalMax: finalXMax } = calculateBufferedRange(xMin, xMax);
-  const { finalMin: finalYMin, finalMax: finalYMax } = calculateBufferedRange(yMin, yMax);
+  // --- Use the helper function for buffering ---
+  const { finalMin: finalXMin, finalMax: finalXMax } = calculateBufferedRange(xMin, xMax)
+  const { finalMin: finalYMin, finalMax: finalYMax } = calculateBufferedRange(yMin, yMax)
 
   useEffect(() => {
     if (chartContainerRef.current) {
-      // ... (The rest of the useEffect hook remains exactly the same)
+      // --- NEW: Check if the 4th dimension data is provided ---
+      const hasFourthDimension = dValues && dValues.length > 0 && dLabel
+
       let bubbleSeriesData
       if (groups && groups.length > 0) {
         const uniqueGroups = [...new Set(groups)]
@@ -92,7 +96,9 @@ export const BubbleChart: FC = () => {
                   name: label,
                   x: xValues[index],
                   y: yValues[index],
-                  z: zValues[index]
+                  z: zValues[index],
+                  // --- NEW: Add 4th dimension to point data ---
+                  d: dValues?.[index]
                 }
               }
               return null
@@ -110,6 +116,7 @@ export const BubbleChart: FC = () => {
               x: xValues[index],
               y: yValues[index],
               z: zValues[index],
+              d: dValues?.[index],
               color: colors[index] || defaultColor
             }))
           }
@@ -128,35 +135,43 @@ export const BubbleChart: FC = () => {
             textOutline: 'none'
           }
         }
-      }));
-      const finalSeries: Highcharts.SeriesOptionsType[] = [...finalBubbleSeries];
-      if (
-        areaHighLight &&
-        areaHighLight.x1 != null &&
-        areaHighLight.x2 != null &&
-        areaHighLight.y1 != null &&
-        areaHighLight.y2 != null
-      ) {
+      }))
+
+      const finalSeries: Highcharts.SeriesOptionsType[] = [...finalBubbleSeries]
+      
+      if (areaHighLight && Array.isArray(areaHighLight.points) && areaHighLight.points.length > 1) {
         finalSeries.push({
           type: 'polygon',
           name: 'Highlight',
-          data: [
-            [areaHighLight.x1, areaHighLight.y1],
-            [areaHighLight.x2, areaHighLight.y1],
-            [areaHighLight.x2, areaHighLight.y2],
-            [areaHighLight.x1, areaHighLight.y2]
-          ],
+          // Directly use the points from the model
+          data: areaHighLight.points,
           lineWidth: 0,
-          color: areaHighLight.color || 'rgba(234, 153, 153, 0.4)',
+          color: areaHighLight.color || 'rgba(234, 153, 153, 0.4)', // Use color from model
           fillOpacity: 0.5,
           zIndex: 0,
           enableMouseTracking: false,
           showInLegend: false,
           marker: {
-              enabled: false
+            enabled: false
           }
         });
       }
+      
+
+      // --- NEW: Dynamically build tooltip format ---
+      let tooltipFormat =
+        '<span style="color:{point.color}">\u25cf</span> ' +
+        '{point.name}<br/>' +
+        `${xLabel}: {point.x}<br/>` +
+        `${yLabel}: {point.y}<br/>` +
+        `${zLabel}: {point.z}<br/>`
+
+      if (hasFourthDimension) {
+        tooltipFormat += `${dLabel}: {point.d}<br/>`
+      }
+
+      tooltipFormat += 'Group: {series.name}'
+
       const options: Highcharts.Options = {
         chart: {
           type: 'bubble',
@@ -185,7 +200,7 @@ export const BubbleChart: FC = () => {
           showLastLabel: true,
           min: finalXMin,
           max: finalXMax,
-          plotLines: plotLineXValues.map((xValue, index) => ({
+          plotLines: (plotLineXValues || []).map((xValue, index) => ({
             value: xValue,
             color: '#000000',
             width: 1,
@@ -212,7 +227,7 @@ export const BubbleChart: FC = () => {
           endOnTick: yAxisType !== 'category',
           min: finalYMin,
           max: finalYMax,
-          plotLines: plotLineYValues.map((yValue, index) => ({
+          plotLines: (plotLineYValues || []).map((yValue, index) => ({
             value: yValue,
             color: '#000000',
             width: 1,
@@ -230,13 +245,7 @@ export const BubbleChart: FC = () => {
         },
         tooltip: {
           headerFormat: '',
-          pointFormat:
-            '<span style="color:{point.color}">\u25cf</span> ' +
-            '{point.name}<br/>' +
-            `${xLabel}: {point.x}<br/>` +
-            `${yLabel}: {point.y}<br/>` +
-            `${zLabel}: {point.z}<br/>` +
-            'Group: {series.name}'
+          pointFormat: tooltipFormat // Use the dynamically created format
         },
         title: {
           text: title
@@ -268,6 +277,8 @@ export const BubbleChart: FC = () => {
     JSON.stringify(xValues),
     JSON.stringify(yValues),
     JSON.stringify(zValues),
+    JSON.stringify(dValues),
+    dLabel,
     JSON.stringify(labels),
     JSON.stringify(colors),
     JSON.stringify(groups),
