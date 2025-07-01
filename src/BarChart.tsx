@@ -49,21 +49,56 @@ export const BarChart: FC = () => {
   const [dataLabelsOff, setDataLabelsOff] = Retool.useStateBoolean({
     name: 'dataLabelsOff'
   })
+  
+  // New threshold-related state variables
+  const [threshold, setThreshold] = Retool.useStateNumber({ name: 'threshold' })
+  const [thresholdColor, setThresholdColor] = Retool.useStateString({ 
+    name: 'thresholdColor',
+    initialValue: '#ff0000' // Default red color
+  })
+  const [enableThreshold, setEnableThreshold] = Retool.useStateBoolean({ 
+    name: 'enableThreshold',
+    initialValue: false
+  })
+
+  // Helper function to apply threshold colors to data points
+  const applyThresholdColors = useCallback((seriesData: any[], seriesIndex: number) => {
+    if (!enableThreshold || threshold === undefined || threshold === null) {
+      return seriesData
+    }
+
+    return seriesData.map((point: any) => {
+      const value = typeof point === 'object' ? point.y : point
+      const exceedsThreshold = value > threshold
+      
+      if (typeof point === 'object') {
+        return {
+          ...point,
+          color: exceedsThreshold ? thresholdColor : (point.color || colors[seriesIndex % colors.length])
+        }
+      } else {
+        return {
+          y: point,
+          color: exceedsThreshold ? thresholdColor : colors[seriesIndex % colors.length]
+        }
+      }
+    })
+  }, [enableThreshold, threshold, thresholdColor, colors])
 
   // Memoize the series data preparation
   const prepareSeriesData = useCallback(() => {
     return Array.isArray(data[0])
       ? data.map((series, index) => ({
           type: layout,
-          data: series,
-          color: colors[index % colors.length],
+          data: applyThresholdColors(series, index),
+          color: colors[index % colors.length], // Fallback color for series
           name: seriesNames[index]
         }))
       : [
           {
             type: layout,
-            data,
-            color: colors[0],
+            data: applyThresholdColors(data, 0),
+            color: colors[0], // Fallback color for series
             name: seriesNames[0]
           }
         ]
@@ -71,7 +106,8 @@ export const BarChart: FC = () => {
     JSON.stringify(data),
     JSON.stringify(colors),
     JSON.stringify(seriesNames),
-    layout
+    layout,
+    applyThresholdColors
   ])
 
   // Memoize chart options
@@ -107,7 +143,21 @@ export const BarChart: FC = () => {
         gridLineWidth: 1,
         reversed: reverseYAxis,
         min: yMin || undefined,
-        max: yMax || undefined
+        max: yMax || undefined,
+        // Add threshold line if enabled
+        plotLines: enableThreshold && threshold !== undefined && threshold !== null ? [{
+          color: thresholdColor,
+          width: 2,
+          value: threshold,
+          dashStyle: 'Dash',
+          label: {
+            text: `Threshold: ${threshold}`,
+            align: 'right',
+            style: {
+              color: thresholdColor
+            }
+          }
+        }] : undefined
       },
       tooltip: {
         headerFormat: '{point.key}<br/>',
@@ -131,7 +181,8 @@ export const BarChart: FC = () => {
               fontSize: fontSize || '12px'
             }
           },
-          stacking: stacking ? 'normal' : undefined
+          stacking: stacking ? 'normal' : undefined,
+          colorByPoint: enableThreshold // Enable individual point colors when threshold is active
         },
         column: {
           dataLabels: {
@@ -140,7 +191,8 @@ export const BarChart: FC = () => {
               fontSize: fontSize || '12px'
             }
           },
-          stacking: stacking ? 'normal' : undefined
+          stacking: stacking ? 'normal' : undefined,
+          colorByPoint: enableThreshold // Enable individual point colors when threshold is active
         }
       },
       series: prepareSeriesData(),
@@ -167,6 +219,9 @@ export const BarChart: FC = () => {
       showLegend,
       dataLabelsOff,
       stacking,
+      enableThreshold,
+      threshold,
+      thresholdColor,
       JSON.stringify(prepareSeriesData())
     ]
   )
